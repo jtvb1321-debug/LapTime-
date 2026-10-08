@@ -13,14 +13,14 @@ export default async function LoginPage({
   const { redirectTo } = await searchParams;
 
   return (
-    <div className="bg-bg flex min-h-screen items-center justify-center px-6">
+    <div className="flex min-h-screen items-center justify-center px-6">
       <div className="border-border bg-surface w-full max-w-sm rounded-lg border p-6">
         <Link href="/" className="mx-auto block w-48">
           <Image
-            src="/logo-gridlap.png"
+            src="/logo-gridlap.webp"
             alt="Grid Lap"
-            width={2190}
-            height={845}
+            width={2000}
+            height={667}
             priority
           />
         </Link>

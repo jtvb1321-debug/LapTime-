@@ -32,10 +32,10 @@ export function SiteHeader({ session }: { session: SessionUser | null }) {
           className="block w-32 shrink-0"
         >
           <Image
-            src="/logo-gridlap.png"
+            src="/logo-gridlap.webp"
             alt="Grid Lap"
-            width={2190}
-            height={845}
+            width={2000}
+            height={667}
             priority
           />
         </Link>

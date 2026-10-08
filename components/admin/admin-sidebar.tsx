@@ -13,10 +13,10 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
     <nav className="border-border bg-surface flex h-full w-60 shrink-0 flex-col gap-6 overflow-y-auto border-r px-4 py-6">
       <Link href="/admin" className="flex items-center gap-2 px-2">
         <Image
-          src="/logo-gridlap.png"
+          src="/logo-gridlap.webp"
           alt="Grid Lap"
-          width={2190}
-          height={845}
+          width={2000}
+          height={667}
           className="h-7 w-auto"
           priority
         />

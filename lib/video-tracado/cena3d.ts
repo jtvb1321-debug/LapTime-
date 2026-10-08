@@ -185,7 +185,7 @@ function criarFundoComLogo(corBase: string): THREE.CanvasTexture {
     ctx.restore();
     textura.needsUpdate = true;
   };
-  logo.src = "/logo-gridlap.png";
+  logo.src = "/logo-gridlap.webp";
 
   return textura;
 }
