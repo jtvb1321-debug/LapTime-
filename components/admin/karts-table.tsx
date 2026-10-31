@@ -14,8 +14,8 @@ const OPCOES: { value: StatusKart; label: string }[] = [
 
 const TONE_SELECT_CLASSES: Record<string, string> = {
   ink: "bg-ink text-white",
-  "orange-soft": "bg-orange-soft/10 text-orange-soft",
-  orange: "bg-orange/10 text-orange",
+  "orange-soft": "bg-warning-bg text-warning",
+  orange: "bg-orange/10 text-orange-ink",
   neutral: "bg-ink/5 text-ink-2",
 };
 

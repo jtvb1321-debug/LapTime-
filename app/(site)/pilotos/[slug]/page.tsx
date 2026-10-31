@@ -209,11 +209,15 @@ export default async function PilotoPage({
             value: `${piloto.posicaoCampeonato}º`,
             cor: "text-ink",
           },
-          { label: "Pontos", value: pontos, cor: "text-orange" },
-          { label: "Vitórias", value: vitorias, cor: "text-orange" },
+          { label: "Pontos", value: pontos, cor: "text-orange-ink" },
+          { label: "Vitórias", value: vitorias, cor: "text-orange-ink" },
           { label: "Pódios", value: podios, cor: "text-ink" },
-          { label: "Poles", value: poles, cor: "text-orange" },
-          { label: "Voltas rápidas", value: voltasRapidas, cor: "text-orange" },
+          { label: "Poles", value: poles, cor: "text-orange-ink" },
+          {
+            label: "Voltas rápidas",
+            value: voltasRapidas,
+            cor: "text-orange-ink",
+          },
         ].map((stat) => (
           <Card key={stat.label}>
             <CardBody>

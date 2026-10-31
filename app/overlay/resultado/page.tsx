@@ -119,7 +119,7 @@ export default function OverlayResultadoPage() {
         {/* Vencedor — número e assinatura em marca d'água atrás da foto,
         igual ao tratamento da página de perfil do piloto. */}
         <div className="bg-ink flex w-52 shrink-0 flex-col">
-          <div className="bg-orange py-2 text-center text-sm font-black tracking-[0.2em] text-white uppercase">
+          <div className="bg-orange text-on-orange py-2 text-center text-sm font-black tracking-[0.2em] uppercase">
             Winner
           </div>
           <div className="relative flex-1 overflow-hidden">
@@ -161,7 +161,7 @@ export default function OverlayResultadoPage() {
         </div>
 
         <div className="flex flex-1 flex-col">
-          <div className="bg-orange flex items-center justify-between gap-3 px-4 py-1.5 text-white">
+          <div className="bg-orange text-on-orange flex items-center justify-between gap-3 px-4 py-1.5">
             <span className="shrink-0 text-sm font-black uppercase">
               Race {corrida.numero}
             </span>

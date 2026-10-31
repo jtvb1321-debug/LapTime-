@@ -99,7 +99,9 @@ export default function LiveTimingPage() {
     },
     {
       header: "Gap",
-      cell: (r) => <span className="text-orange">{formatGap(r.gapMs)}</span>,
+      cell: (r) => (
+        <span className="text-orange-ink">{formatGap(r.gapMs)}</span>
+      ),
       numerica: true,
     },
   ];

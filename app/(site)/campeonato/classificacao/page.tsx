@@ -47,7 +47,9 @@ const colunas: Coluna<Piloto>[] = [
   { header: "Pódios", cell: (p) => p.podios, numerica: true },
   {
     header: "Pontos",
-    cell: (p) => <span className="text-orange font-semibold">{p.pontos}</span>,
+    cell: (p) => (
+      <span className="text-orange-ink font-semibold">{p.pontos}</span>
+    ),
     numerica: true,
   },
 ];

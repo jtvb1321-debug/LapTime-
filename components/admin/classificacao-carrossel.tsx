@@ -56,7 +56,7 @@ export function ClassificacaoCarrossel({ grupos }: { grupos: Grupo[] }) {
               <Avatar nome={p.nome} avatarUrl={p.avatarUrl} tamanho="sm" />
               {p.nome}
             </span>
-            <span className="text-orange font-mono font-semibold">
+            <span className="text-orange-ink font-mono font-semibold">
               {p.pontos}
             </span>
           </div>

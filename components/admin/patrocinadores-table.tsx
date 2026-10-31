@@ -139,7 +139,7 @@ export function PatrocinadoresTable({
             logoUrl={p.logoUrl}
             className="h-9 w-auto max-w-24"
           />
-          <label className="text-orange cursor-pointer text-xs font-medium hover:underline">
+          <label className="text-orange-ink cursor-pointer text-xs font-medium hover:underline">
             {p.logoUrl ? "Trocar" : "Subir logo"}
             <input
               type="file"
@@ -208,7 +208,7 @@ export function PatrocinadoresTable({
                   logoUrl={novaLogo || undefined}
                   className="h-10 w-20"
                 />
-                <label className="text-orange cursor-pointer text-sm font-medium hover:underline">
+                <label className="text-orange-ink cursor-pointer text-sm font-medium hover:underline">
                   {novaLogo ? "Trocar imagem" : "Escolher imagem"}
                   <input
                     type="file"
@@ -223,7 +223,7 @@ export function PatrocinadoresTable({
           <p className="text-ink-3 text-xs">
             Sem uma logo cadastrada, o nome aparece como selo no lugar dela.
           </p>
-          {erro ? <p className="text-orange text-sm">{erro}</p> : null}
+          {erro ? <p className="text-orange-ink text-sm">{erro}</p> : null}
           <div className="flex justify-end">
             <Button onClick={criarPatrocinador}>Criar patrocinador</Button>
           </div>

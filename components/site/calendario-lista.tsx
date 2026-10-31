@@ -3,8 +3,9 @@
 import { clsx } from "clsx";
 import { Card, CardBody } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
-import { TracadoPreview } from "@/components/tracado-preview";
+import { TracadoMiniatura } from "@/components/tracado/tracado-miniatura";
 import { formatData } from "@/lib/mock/data";
+import { CHAVE_TRACADOS } from "@/lib/tracado3d/rota";
 import { useMockStore } from "@/lib/use-mock-store";
 import type { Etapa, Tracado } from "@/lib/types";
 
@@ -33,7 +34,7 @@ export function CalendarioLista({
   tracadosIniciais: Tracado[];
 }) {
   const [etapas] = useMockStore("gridlap:etapas", etapasIniciais);
-  const [tracados] = useMockStore("gridlap:tracados", tracadosIniciais);
+  const [tracados] = useMockStore(CHAVE_TRACADOS, tracadosIniciais);
 
   if (etapas.length === 0) {
     return (
@@ -55,11 +56,9 @@ export function CalendarioLista({
             <CardBody className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-4">
                 {tracado ? (
-                  <TracadoPreview
+                  <TracadoMiniatura
                     pontos={tracado.pontos}
-                    linhaChegada={tracado.linhaChegada}
-                    sentido={tracado.sentido}
-                    aspectRatio={16 / 12}
+                    fechado={tracado.fechado}
                     className="border-border h-12 w-16 shrink-0 rounded border"
                   />
                 ) : null}

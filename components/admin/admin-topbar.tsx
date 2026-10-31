@@ -10,13 +10,13 @@ export function AdminTopbar({
   onAbrirMenu?: () => void;
 }) {
   return (
-    <header className="border-border bg-surface flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4 sm:px-6">
+    <header className="bg-graphite border-orange flex h-14 shrink-0 items-center justify-between gap-3 border-b-2 px-4 text-white sm:px-6">
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
           onClick={onAbrirMenu}
           aria-label="Abrir menu"
-          className="text-ink-2 hover:text-ink hover:bg-ink/5 -ml-1 rounded-md p-1.5 lg:hidden"
+          className="-ml-1 flex size-11 items-center justify-center rounded-md text-white/80 hover:bg-white/10 hover:text-white lg:hidden"
         >
           <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
             <path
@@ -29,17 +29,18 @@ export function AdminTopbar({
         </button>
         <Link
           href="/"
-          className="text-ink-2 hover:text-ink truncate text-sm font-medium"
+          className="flex min-h-11 items-center truncate text-sm font-medium text-white/80 hover:text-white md:min-h-9"
         >
           ← Voltar ao site
         </Link>
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <span className="text-ink-2 hidden text-sm sm:inline">
-          {session.nome} <span className="text-ink-3">· {session.papel}</span>
+        <span className="hidden text-sm text-white/80 sm:inline">
+          {session.nome}{" "}
+          <span className="text-white/60">· {session.papel}</span>
         </span>
         <form action={logoutAction}>
-          <button className="text-ink-2 hover:text-ink text-sm font-medium">
+          <button className="min-h-11 rounded-md px-2 text-sm font-medium text-white/80 hover:text-white md:min-h-9">
             Sair
           </button>
         </form>

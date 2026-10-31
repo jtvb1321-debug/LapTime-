@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession, podeAcessarAdmin } from "@/lib/auth";
+import { EntradaGrid } from "@/components/entrada/entrada-grid";
 import { AdminShell } from "@/components/admin/admin-shell";
 
 export default async function AdminLayout({
@@ -11,5 +12,10 @@ export default async function AdminLayout({
   if (!session) redirect("/login?redirectTo=/admin");
   if (!podeAcessarAdmin(session.papel)) redirect("/area-do-piloto");
 
-  return <AdminShell session={session}>{children}</AdminShell>;
+  return (
+    <>
+      <EntradaGrid />
+      <AdminShell session={session}>{children}</AdminShell>
+    </>
+  );
 }

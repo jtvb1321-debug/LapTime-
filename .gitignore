@@ -42,3 +42,20 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backups do banco (docker-compose)
+/backups
+!.env.example
+
+# logs do servidor local
+gridlap-local*.log
+
+# coletor de decoders (configuração, fila e capturas são locais)
+coletor/config.json
+coletor/fila.jsonl*
+coletor/capturas/
+coletor/agente.json
+coletor/dist/
+coletor/GridLap-Agente.log
+.tunel-local.cmd
+.servidor-local.cmd

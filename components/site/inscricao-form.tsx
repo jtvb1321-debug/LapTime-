@@ -24,7 +24,7 @@ export function InscricaoForm({
 
   if (state.sucesso) {
     return (
-      <div className="border-orange/30 bg-orange/5 text-orange rounded-lg border px-5 py-4 text-sm">
+      <div className="border-orange/30 bg-orange/5 text-orange-ink rounded-lg border px-5 py-4 text-sm">
         Inscrição recebida! (modo demonstração local — nenhum dado foi salvo
         ainda)
       </div>
@@ -111,7 +111,9 @@ export function InscricaoForm({
         Li e aceito o regulamento do campeonato
       </label>
 
-      {state.erro ? <p className="text-orange text-sm">{state.erro}</p> : null}
+      {state.erro ? (
+        <p className="text-orange-ink text-sm">{state.erro}</p>
+      ) : null}
 
       <Button type="submit" disabled={pending} className="self-start">
         {pending ? "Enviando…" : "Confirmar inscrição"}

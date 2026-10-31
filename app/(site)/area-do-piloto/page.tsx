@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { EntradaGrid } from "@/components/entrada/entrada-grid";
 import { Card, CardBody } from "@/components/ui/card";
 import { StatusPill, toneParaStatus } from "@/components/ui/status-pill";
 import { logoutAction } from "@/lib/auth-actions";
@@ -26,6 +27,7 @@ export default async function AreaDoPilotoPage() {
 
   return (
     <div className="flex flex-col gap-8">
+      <EntradaGrid />
       <div className="border-border flex flex-wrap items-center justify-between gap-4 border-b pb-6">
         <div>
           <h1 className="text-ink text-2xl font-semibold">Área do piloto</h1>
@@ -48,7 +50,7 @@ export default async function AreaDoPilotoPage() {
             </p>
             <Link
               href="/admin"
-              className="text-orange text-sm font-medium hover:underline"
+              className="text-orange-ink text-sm font-medium hover:underline"
             >
               Ir para o admin →
             </Link>
@@ -77,7 +79,7 @@ export default async function AreaDoPilotoPage() {
               </div>
               <Link
                 href={`/pilotos/${piloto.slug}`}
-                className="text-orange text-sm font-medium hover:underline"
+                className="text-orange-ink text-sm font-medium hover:underline"
               >
                 Ver perfil público →
               </Link>

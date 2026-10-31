@@ -88,7 +88,7 @@ export default function OverlayGridPage() {
   return (
     <div className="fixed inset-0 flex items-center justify-center font-sans">
       <div className="bg-surface flex w-[900px] max-w-[92vw] flex-col overflow-hidden rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-        <div className="bg-orange flex items-center justify-between gap-4 px-8 py-4 text-white">
+        <div className="bg-orange text-on-orange flex items-center justify-between gap-4 px-8 py-4">
           <span className="text-2xl font-black tracking-widest uppercase">
             Grid de largada
           </span>

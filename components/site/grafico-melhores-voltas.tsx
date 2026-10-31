@@ -40,7 +40,7 @@ export function GraficoMelhoresVoltas({
             <span
               className={clsx(
                 "font-mono text-[11px] font-semibold whitespace-nowrap",
-                ponto.destaque ? "text-orange" : "text-ink-2",
+                ponto.destaque ? "text-orange-ink" : "text-ink-2",
               )}
             >
               {formatTempoVolta(ponto.tempoMs)}

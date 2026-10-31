@@ -3,16 +3,16 @@ import { campeonato } from "@/lib/mock/data";
 
 export function SiteFooter() {
   return (
-    <footer className="border-border bg-surface border-t">
+    <footer className="bg-graphite text-white/80">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-6 py-10">
         <Image
           src="/logo-gridlap.webp"
           alt="Grid Lap"
           width={2000}
           height={667}
-          className="h-auto w-full max-w-xs"
+          className="h-auto w-full max-w-xs rounded-lg bg-white p-1"
         />
-        <div className="text-ink-2 flex w-full flex-col gap-2 text-center text-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex w-full flex-col gap-2 text-center text-sm sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {new Date().getFullYear()}
             {campeonato

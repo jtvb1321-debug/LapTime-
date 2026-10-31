@@ -24,7 +24,7 @@ export function Logo({
         >
           GRID
         </span>
-        <span className="text-orange ml-1 skew-x-[-8deg]">LAP</span>
+        <span className="text-orange-ink ml-1 skew-x-[-8deg]">LAP</span>
       </span>
     </span>
   );

@@ -7,9 +7,11 @@ import { DataTable, type Coluna } from "@/components/ui/data-table";
 import { PosicaoBadge } from "@/components/ui/posicao-badge";
 import { StatusPill } from "@/components/ui/status-pill";
 import { VoltaRapidaBadge } from "@/components/ui/race-badge";
+import { lerImagemDoCampeonato } from "@/lib/campeonato-imagem-store";
 import { corSolidaCategoria } from "@/lib/categoria-cor";
 import {
   baterias,
+  campeonato,
   etapas,
   formatData,
   formatGap,
@@ -23,7 +25,10 @@ import {
 } from "@/lib/mock/data";
 import type { Etapa, Resultado } from "@/lib/types";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const imagemDoCampeonato = campeonato
+    ? await lerImagemDoCampeonato(campeonato.id).catch(() => null)
+    : null;
   const proximaEtapa: Etapa | undefined =
     etapas.find((e) => e.status === "agendada") ?? etapas[0];
   const etapaAtual = getEtapaAtual();
@@ -87,13 +92,25 @@ export default function HomePage() {
     },
     {
       header: "Gap",
-      cell: (r) => <span className="text-orange">{formatGap(r.gapMs)}</span>,
+      cell: (r) => (
+        <span className="text-orange-ink">{formatGap(r.gapMs)}</span>
+      ),
       numerica: true,
     },
   ];
 
   return (
     <div className="flex flex-col gap-10">
+      {campeonato && imagemDoCampeonato ? (
+        <section aria-label={`Apresentação: ${campeonato.nome}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/api/campeonatos/${encodeURIComponent(campeonato.id)}/imagem?v=${imagemDoCampeonato.atualizadoEm.getTime()}`}
+            alt={imagemDoCampeonato.alt}
+            className="border-border aspect-[16/7] w-full rounded-lg border object-cover"
+          />
+        </section>
+      ) : null}
       <section>
         <Card className="overflow-hidden">
           {!etapaAtual ? (
@@ -191,7 +208,7 @@ export default function HomePage() {
               </p>
               <Link
                 href="/campeonato/calendario"
-                className="text-orange mt-3 text-sm font-medium hover:underline"
+                className="text-orange-ink mt-3 text-sm font-medium hover:underline"
               >
                 Ver calendário completo →
               </Link>

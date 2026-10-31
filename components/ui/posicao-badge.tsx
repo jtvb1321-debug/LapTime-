@@ -1,9 +1,9 @@
 import { clsx } from "clsx";
 
 const CORES_PODIO: Record<number, string> = {
-  1: "bg-orange text-white",
+  1: "bg-orange text-on-orange",
   2: "bg-ink text-white",
-  3: "bg-orange-soft text-white",
+  3: "bg-orange-soft text-on-orange",
 };
 
 export function PosicaoBadge({ posicao }: { posicao: number }) {

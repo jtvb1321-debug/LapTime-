@@ -13,20 +13,40 @@ import {
 import type { Categoria } from "@/lib/types";
 
 const ESTADO_INICIAL: CadastroState = {};
-const TAMANHO_MAXIMO_BYTES = 2 * 1024 * 1024;
+// Arquivo de entrada: até 8 MB; a foto é reduzida antes de enviar (o servidor
+// de ações aceita no máximo 1 MB por envio).
+const TAMANHO_MAXIMO_BYTES = 8 * 1024 * 1024;
+const LADO_MAXIMO_FOTO = 512;
 const COR_NUMERO_PADRAO = "#8b5cf6";
 const COR_ASSINATURA_PADRAO = "#f2f5f7";
 
-function lerComoDataUrl(arquivo: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const leitor = new FileReader();
-    leitor.onload = () => {
-      if (typeof leitor.result === "string") resolve(leitor.result);
-      else reject(new Error("Falha ao ler o arquivo."));
-    };
-    leitor.onerror = () => reject(leitor.error);
-    leitor.readAsDataURL(arquivo);
-  });
+// Lê a imagem e a reduz (lado maior de 512 px, JPEG): a foto do piloto é só um
+// avatar, e assim o envio fica pequeno em qualquer celular.
+async function reduzirImagem(arquivo: File): Promise<string> {
+  const url = URL.createObjectURL(arquivo);
+  try {
+    const imagem = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Imagem inválida."));
+      img.src = url;
+    });
+    const escala = Math.min(
+      1,
+      LADO_MAXIMO_FOTO / Math.max(imagem.naturalWidth, imagem.naturalHeight),
+    );
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(imagem.naturalWidth * escala));
+    canvas.height = Math.max(1, Math.round(imagem.naturalHeight * escala));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Sem suporte a imagem.");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imagem, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.82);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 export function CadastroForm({
@@ -51,14 +71,16 @@ export function CadastroForm({
     evento.target.value = "";
     if (!arquivo) return;
     if (arquivo.size > TAMANHO_MAXIMO_BYTES) {
-      setErroFoto("Imagem muito grande — escolha um arquivo de até 2 MB.");
+      setErroFoto("Imagem muito grande — escolha um arquivo de até 8 MB.");
       return;
     }
     try {
-      setFoto(await lerComoDataUrl(arquivo));
+      setFoto(await reduzirImagem(arquivo));
       setErroFoto("");
     } catch {
-      setErroFoto("Não foi possível ler a imagem selecionada.");
+      setErroFoto(
+        "Não foi possível ler a imagem. Use um arquivo PNG, JPG ou WEBP.",
+      );
     }
   }
 
@@ -73,7 +95,7 @@ export function CadastroForm({
           tamanho="lg"
         />
         <div className="flex flex-col gap-1">
-          <label className="text-orange w-fit cursor-pointer text-sm font-medium hover:underline">
+          <label className="text-orange-ink w-fit cursor-pointer text-sm font-medium hover:underline">
             {foto ? "Trocar foto" : "Escolher foto"}
             <input
               type="file"
@@ -82,7 +104,9 @@ export function CadastroForm({
               onChange={aoEscolherFoto}
             />
           </label>
-          {erroFoto ? <p className="text-orange text-xs">{erroFoto}</p> : null}
+          {erroFoto ? (
+            <p className="text-orange-ink text-xs">{erroFoto}</p>
+          ) : null}
         </div>
       </div>
 
@@ -296,7 +320,9 @@ export function CadastroForm({
         </div>
       </div>
 
-      {state.erro ? <p className="text-orange text-sm">{state.erro}</p> : null}
+      {state.erro ? (
+        <p className="text-orange-ink text-sm">{state.erro}</p>
+      ) : null}
 
       <Button type="submit" disabled={pending} className="self-start">
         {pending ? "Criando conta…" : "Criar conta de piloto"}

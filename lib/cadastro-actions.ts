@@ -1,10 +1,19 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { paraSessao, sessionCookieName } from "@/lib/auth";
-import { adicionarPiloto, lerPilotos } from "@/lib/pilotos-store";
-import { adicionarPerfil, emailJaCadastrado } from "@/lib/perfis-store";
+import { ipDaRequisicao, iniciarSessao } from "@/lib/auth";
+import { registrarAuditoria } from "@/lib/audit";
+import {
+  cadastrarPilotoComPerfil,
+  ehViolacaoDeUnicidade,
+} from "@/lib/cadastro-store";
+import { lerPilotos } from "@/lib/pilotos-store";
+import { emailJaCadastrado } from "@/lib/perfis-store";
+import {
+  corValida,
+  erroDoCadastro,
+  limparTexto,
+} from "@/lib/cadastro-validacao";
 import { hashSenha } from "@/lib/senha";
 import { ESTADOS_BRASIL } from "@/lib/estados-brasil";
 import type { Perfil, Piloto } from "@/lib/types";
@@ -25,32 +34,38 @@ export async function cadastroPilotoMockAction(
   _prevState: CadastroState,
   formData: FormData,
 ): Promise<CadastroState> {
-  const nome = String(formData.get("nome") ?? "").trim();
-  const apelido = String(formData.get("apelido") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
+  const nome = limparTexto(formData.get("nome"));
+  const apelido = limparTexto(formData.get("apelido"));
+  const email = limparTexto(formData.get("email"));
   const senha = String(formData.get("senha") ?? "");
   const idade = Number(formData.get("idade"));
   const categoriaId = String(formData.get("categoriaId") ?? "");
   const pesoKg = Number(formData.get("pesoKg"));
   const uf = String(formData.get("uf") ?? "");
   const numero = Number(formData.get("numero"));
-  const corNumero = String(formData.get("corNumero") ?? "") || "#8b5cf6";
-  const corAssinatura =
-    String(formData.get("corAssinatura") ?? "") || "#f2f5f7";
-  const fotoUrl = String(formData.get("fotoUrl") ?? "");
+  const corNumero = corValida(
+    limparTexto(formData.get("corNumero")),
+    "#8b5cf6",
+  );
+  const corAssinatura = corValida(
+    limparTexto(formData.get("corAssinatura")),
+    "#f2f5f7",
+  );
+  const fotoUrl = String(formData.get("fotoUrl") ?? "").trim();
 
   if (!nome || !apelido || !email || !senha || !categoriaId || !uf) {
     return { erro: "Preencha todos os campos obrigatórios." };
   }
-  if (senha.length < 6) {
-    return { erro: "A senha precisa ter pelo menos 6 caracteres." };
-  }
-  if (!Number.isFinite(idade) || idade <= 0) {
-    return { erro: "Informe uma idade válida." };
-  }
-  if (!Number.isFinite(pesoKg) || pesoKg <= 0) {
-    return { erro: "Informe um peso válido." };
-  }
+  const erro = erroDoCadastro({
+    nome,
+    apelido,
+    email,
+    senha,
+    idade,
+    pesoKg,
+    fotoUrl,
+  });
+  if (erro) return { erro };
   if (!Number.isInteger(numero) || numero < 1 || numero > 999) {
     return { erro: "Escolha um número de 1 a 999." };
   }
@@ -101,16 +116,26 @@ export async function cadastroPilotoMockAction(
     senhaHash: hashSenha(senha),
   };
 
-  await adicionarPiloto(novoPiloto);
-  await adicionarPerfil(novoPerfil);
+  try {
+    await cadastrarPilotoComPerfil(novoPiloto, novoPerfil);
+  } catch (erro) {
+    // Dois cadastros simultâneos com o mesmo e-mail/slug: o banco barra o
+    // segundo e nada fica pela metade.
+    if (ehViolacaoDeUnicidade(erro)) {
+      return { erro: "Já existe uma conta com esse e-mail." };
+    }
+    throw erro;
+  }
 
-  const cookieStore = await cookies();
-  cookieStore.set(sessionCookieName(), JSON.stringify(paraSessao(novoPerfil)), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 8,
+  await registrarAuditoria({
+    usuarioId: novoPerfil.id,
+    acao: "cadastro.piloto",
+    entidade: "piloto",
+    entidadeId: pilotoId,
+    depois: { nome, apelido, numero, categoriaId, uf },
+    ip: await ipDaRequisicao(),
   });
+  await iniciarSessao(novoPerfil);
 
   redirect("/area-do-piloto");
 }

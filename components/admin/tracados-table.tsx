@@ -3,16 +3,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DataTable, type Coluna } from "@/components/ui/data-table";
-import { TracadoEditor } from "@/components/admin/tracado-editor";
-import { TracadoPreview } from "@/components/tracado-preview";
+import {
+  TracadoEditor,
+  type RotaEditada,
+} from "@/components/admin/tracado-editor";
+import { TracadoMiniatura } from "@/components/tracado/tracado-miniatura";
 import { formatTempoVolta, getRecordeDoTracado } from "@/lib/mock/data";
+import { CHAVE_TRACADOS } from "@/lib/tracado3d/rota";
 import { useMockStore } from "@/lib/use-mock-store";
-import type {
-  CurvaNomeada,
-  PontoTracado,
-  SentidoProva,
-  Tracado,
-} from "@/lib/types";
+import type { Tracado } from "@/lib/types";
 
 export function TracadosTable({
   tracadosIniciais,
@@ -20,19 +19,42 @@ export function TracadosTable({
   tracadosIniciais: Tracado[];
 }) {
   const [tracados, setTracados] = useMockStore(
-    "gridlap:tracados",
+    CHAVE_TRACADOS,
     tracadosIniciais,
   );
   const [formAberto, setFormAberto] = useState(false);
+  // Quando preenchido, o formulário edita este traçado em vez de criar outro.
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [chaveForm, setChaveForm] = useState(0);
+  const [inicial, setInicial] = useState<Tracado | undefined>();
   const [nome, setNome] = useState("");
-  const [extensao, setExtensao] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [pontos, setPontos] = useState<PontoTracado[]>([]);
-  const [linhaChegada, setLinhaChegada] = useState<PontoTracado>();
-  const [sentido, setSentido] = useState<SentidoProva>();
-  const [curvas, setCurvas] = useState<CurvaNomeada[]>([]);
+  const [rota, setRota] = useState<RotaEditada>({
+    pontos: [],
+    fechado: false,
+    invalidos: 0,
+    metros: 0,
+    pronto: false,
+  });
   const [erro, setErro] = useState("");
   const [mostrarExportacao, setMostrarExportacao] = useState(false);
+
+  function abrirForm(tracado?: Tracado) {
+    setEditandoId(tracado?.id ?? null);
+    setInicial(tracado);
+    setNome(tracado?.nome ?? "");
+    setDescricao(tracado?.descricao ?? "");
+    setErro("");
+    setChaveForm((k) => k + 1);
+    setFormAberto(true);
+  }
+
+  function fecharForm() {
+    setFormAberto(false);
+    setEditandoId(null);
+    setInicial(undefined);
+    setErro("");
+  }
 
   function excluirTracado(id: string) {
     if (
@@ -45,54 +67,58 @@ export function TracadosTable({
     setTracados((prev) => prev.filter((t) => t.id !== id));
   }
 
-  function criarTracado() {
-    if (!nome.trim()) {
-      setErro("Preencha o nome do traçado.");
-      return;
+  function salvarTracado() {
+    if (!nome.trim()) return setErro("Preencha o nome do traçado.");
+    if (rota.pontos.length < 2) {
+      return setErro("Marque pelo menos 2 pontos sobre o asfalto.");
     }
-    if (pontos.length < 3) {
-      setErro("Marque pelo menos 3 pontos sobre o desenho da pista.");
-      return;
+    if (!rota.pronto) {
+      return setErro("Aguarde o modelo da pista terminar de carregar.");
     }
-    const novo: Tracado = {
-      id: `tracado-${Date.now()}`,
+    if (rota.invalidos > 0) {
+      return setErro(
+        `${rota.invalidos} trecho(s) saem do asfalto (em vermelho). Corrija antes de salvar.`,
+      );
+    }
+    const dados = {
       nome: nome.trim(),
-      extensaoMetros: extensao.trim() ? Number(extensao) : undefined,
       descricao: descricao.trim() || undefined,
-      pontos,
-      linhaChegada,
-      sentido,
-      curvas: curvas.length > 0 ? curvas : undefined,
+      pontos: rota.pontos,
+      fechado: rota.fechado,
+      extensaoMetros: Math.round(rota.metros),
     };
-    setTracados((prev) => [...prev, novo]);
-    setNome("");
-    setExtensao("");
-    setDescricao("");
-    setPontos([]);
-    setLinhaChegada(undefined);
-    setSentido(undefined);
-    setCurvas([]);
-    setErro("");
-    setFormAberto(false);
+    if (editandoId) {
+      setTracados((prev) =>
+        prev.map((t) => (t.id === editandoId ? { ...t, ...dados } : t)),
+      );
+    } else {
+      setTracados((prev) => [
+        ...prev,
+        { id: `tracado-${Date.now()}`, ...dados },
+      ]);
+    }
+    fecharForm();
   }
 
   const colunas: Coluna<Tracado>[] = [
     {
       header: "Traçado",
       cell: (t) => (
-        <TracadoPreview
+        <TracadoMiniatura
           pontos={t.pontos}
-          linhaChegada={t.linhaChegada}
-          sentido={t.sentido}
-          aspectRatio={20 / 12}
+          fechado={t.fechado}
           className="border-border h-12 w-20 rounded border"
         />
       ),
     },
     { header: "Nome", cell: (t) => t.nome },
     {
+      header: "Tipo",
+      cell: (t) => (t.fechado ? "Circuito fechado" : "Rota aberta"),
+    },
+    {
       header: "Extensão",
-      cell: (t) => (t.extensaoMetros ? `${t.extensaoMetros} m` : "—"),
+      cell: (t) => (t.extensaoMetros ? `≈ ${t.extensaoMetros} m` : "—"),
     },
     {
       header: "Recorde",
@@ -105,13 +131,22 @@ export function TracadosTable({
     {
       header: "",
       cell: (t) => (
-        <button
-          type="button"
-          onClick={() => excluirTracado(t.id)}
-          className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline"
-        >
-          Excluir
-        </button>
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => abrirForm(t)}
+            className="text-orange-ink min-h-11 text-xs font-medium hover:underline md:min-h-0"
+          >
+            Editar
+          </button>
+          <button
+            type="button"
+            onClick={() => excluirTracado(t.id)}
+            className="text-danger min-h-11 text-xs font-medium hover:underline md:min-h-0"
+          >
+            Excluir
+          </button>
+        </div>
       ),
     },
   ];
@@ -119,15 +154,12 @@ export function TracadosTable({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-end gap-2">
-        <Button
-          variant="ghost"
-          onClick={() => setMostrarExportacao((v) => !v)}
-        >
+        <Button variant="ghost" onClick={() => setMostrarExportacao((v) => !v)}>
           {mostrarExportacao ? "Fechar exportação" : "Exportar dados"}
         </Button>
         <Button
           variant="secondary"
-          onClick={() => setFormAberto((aberto) => !aberto)}
+          onClick={() => (formAberto ? fecharForm() : abrirForm())}
         >
           {formAberto ? "Cancelar" : "Novo traçado"}
         </Button>
@@ -136,13 +168,14 @@ export function TracadosTable({
       {mostrarExportacao ? (
         <div className="border-border bg-surface flex flex-col gap-2 rounded-lg border p-4">
           <p className="text-ink-2 text-xs">
-            Dados de todos os traçados salvos neste navegador (inclui os
-            criados aqui, que só existem localmente). Selecione tudo e copie
-            pra enviar — é assim que dá pra levar um traçado feito aqui pra
-            fora deste navegador.
+            Dados de todos os traçados salvos neste navegador (inclui os criados
+            aqui, que só existem localmente). Selecione tudo e copie pra enviar
+            — é assim que dá pra levar um traçado feito aqui pra fora deste
+            navegador.
           </p>
           <textarea
             readOnly
+            aria-label="Dados dos traçados em JSON"
             value={JSON.stringify(tracados, null, 2)}
             onFocus={(e) => e.currentTarget.select()}
             className="border-border-strong h-64 w-full rounded-md border p-2 font-mono text-xs"
@@ -152,55 +185,64 @@ export function TracadosTable({
 
       {formAberto ? (
         <div className="border-border bg-surface flex flex-col gap-3 rounded-lg border p-4">
+          <p className="text-ink text-sm font-semibold">
+            {editandoId ? "Editar traçado" : "Novo traçado"}
+          </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <label className="text-ink text-sm font-medium">Nome</label>
+              <label
+                htmlFor="tracado-nome"
+                className="text-ink text-sm font-medium"
+              >
+                Nome
+              </label>
               <input
+                id="tracado-nome"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
+                maxLength={80}
                 placeholder="Traçado Principal"
-                className="border-border-strong focus:border-orange rounded-md border px-3 py-2 text-sm outline-none"
+                className="border-border-strong focus:border-orange min-h-11 rounded-md border px-3 py-2 text-sm outline-none md:min-h-9"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-ink text-sm font-medium">
-                Extensão (metros, opcional)
+              <label
+                htmlFor="tracado-descricao"
+                className="text-ink text-sm font-medium"
+              >
+                Descrição (opcional)
               </label>
               <input
-                type="number"
-                inputMode="numeric"
-                value={extensao}
-                onChange={(e) => setExtensao(e.target.value)}
-                placeholder="1200"
-                className="border-border-strong focus:border-orange rounded-md border px-3 py-2 text-sm outline-none"
+                id="tracado-descricao"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                placeholder="Ex.: configuração usada nas etapas da temporada"
+                className="border-border-strong focus:border-orange min-h-11 rounded-md border px-3 py-2 text-sm outline-none md:min-h-9"
               />
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-ink text-sm font-medium">
-              Descrição (opcional)
-            </label>
-            <input
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Ex.: configuração usada nas etapas de temporada regular"
-              className="border-border-strong focus:border-orange rounded-md border px-3 py-2 text-sm outline-none"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-ink text-sm font-medium">
-              Percurso e linha de chegada
-            </label>
+            <p className="text-ink text-sm font-medium">Percurso no asfalto</p>
             <TracadoEditor
-              onChangePontos={setPontos}
-              onChangeLinhaChegada={setLinhaChegada}
-              onChangeSentido={setSentido}
-              onChangeCurvas={setCurvas}
+              key={chaveForm}
+              inicial={
+                inicial
+                  ? { pontos: inicial.pontos, fechado: inicial.fechado }
+                  : undefined
+              }
+              nomeDoArquivo={nome.trim() || "tracado"}
+              onChange={setRota}
             />
           </div>
-          {erro ? <p className="text-orange text-sm">{erro}</p> : null}
+          {erro ? (
+            <p role="alert" className="text-orange-ink text-sm">
+              {erro}
+            </p>
+          ) : null}
           <div className="flex justify-end">
-            <Button onClick={criarTracado}>Criar traçado</Button>
+            <Button onClick={salvarTracado}>
+              {editandoId ? "Salvar alterações" : "Criar traçado"}
+            </Button>
           </div>
         </div>
       ) : null}

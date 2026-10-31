@@ -1,303 +1,481 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
 import { Button } from "@/components/ui/button";
-import { MarcadorLargada } from "@/components/tracado-marcador-largada";
-import { pontosParaCurvaSuave } from "@/lib/curva-suave";
+import { Pista3D, type ControlePista3D } from "@/components/tracado/pista-3d";
+import type { ModoCena, ResumoDaRota } from "@/lib/tracado3d/cena-pista";
 import {
-  PISTA_ALTURA,
-  PISTA_BASE_SRC,
-  PISTA_LARGURA,
-  PISTA_VIEWBOX,
-} from "@/lib/pista";
-import type { CurvaNomeada, PontoTracado, SentidoProva } from "@/lib/types";
+  MAX_ARQUIVO_BYTES,
+  lerArquivo,
+  paraArquivo,
+  type PontoRota,
+} from "@/lib/tracado3d/rota";
+import { ROTA_EXEMPLO } from "@/lib/tracado3d/rota-exemplo";
 
-const OPCOES_SENTIDO: { value: SentidoProva; label: string }[] = [
-  { value: "horario", label: "Horário (seta pro norte da imagem)" },
-  { value: "anti_horario", label: "Anti-horário (seta pro sul da imagem)" },
+export interface RotaEditada {
+  pontos: PontoRota[];
+  fechado: boolean;
+  // Trechos fora do asfalto; 0 só vale depois do modelo carregado.
+  invalidos: number;
+  metros: number;
+  pronto: boolean;
+}
+
+interface Estado {
+  pontos: PontoRota[];
+  fechado: boolean;
+}
+
+const MODOS: { id: ModoCena; rotulo: string; dica: string }[] = [
+  {
+    id: "criar",
+    rotulo: "Criar",
+    dica: "Clique no asfalto para adicionar pontos. As curvas passam pelos pontos em ordem.",
+  },
+  {
+    id: "editar",
+    rotulo: "Editar",
+    dica: "Arraste os pontos verdes. Selecione um ponto para excluir ou mudar sua ordem.",
+  },
+  {
+    id: "navegar",
+    rotulo: "Navegar",
+    dica: "Arraste para girar; use a roda para zoom e o botão direito para mover a vista.",
+  },
 ];
 
-// Editor de traçado: o admin clica uma sequência de pontos em cima do
-// desenho da pista pra marcar o percurso, depois troca pro modo "Linha de
-// chegada" pra posicionar o quadriculado (um clique só, pode reposicionar
-// clicando de novo) e escolhe o sentido da prova.
+// Editor de traçado em 3D sobre o modelo do kartódromo: o admin clica em
+// pontos no asfalto, em ordem (vários em cada curva), e o editor liga os
+// pontos com uma curva suave e avisa onde ela sai da pista.
 export function TracadoEditor({
-  pontosIniciais = [],
-  linhaChegadaInicial,
-  sentidoInicial,
-  curvasIniciais = [],
-  onChangePontos,
-  onChangeLinhaChegada,
-  onChangeSentido,
-  onChangeCurvas,
+  inicial,
+  nomeDoArquivo = "tracado",
+  onChange,
 }: {
-  pontosIniciais?: PontoTracado[];
-  linhaChegadaInicial?: PontoTracado;
-  sentidoInicial?: SentidoProva;
-  curvasIniciais?: CurvaNomeada[];
-  onChangePontos: (pontos: PontoTracado[]) => void;
-  onChangeLinhaChegada: (ponto: PontoTracado | undefined) => void;
-  onChangeSentido: (sentido: SentidoProva | undefined) => void;
-  onChangeCurvas: (curvas: CurvaNomeada[]) => void;
+  inicial?: Estado;
+  nomeDoArquivo?: string;
+  onChange: (rota: RotaEditada) => void;
 }) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [modo, setModo] = useState<"percurso" | "chegada" | "curvas">(
-    "percurso",
-  );
-  const [pontos, setPontos] = useState<PontoTracado[]>(pontosIniciais);
-  const [linhaChegada, setLinhaChegada] = useState<PontoTracado | undefined>(
-    linhaChegadaInicial,
-  );
-  const [sentido, setSentido] = useState<SentidoProva | undefined>(
-    sentidoInicial,
-  );
-  const [curvas, setCurvas] = useState<CurvaNomeada[]>(curvasIniciais);
+  const controle = useRef<ControlePista3D>(null);
+  const [pontos, setPontos] = useState<PontoRota[]>(inicial?.pontos ?? []);
+  const [fechado, setFechado] = useState(inicial?.fechado ?? false);
+  const [selecionado, setSelecionado] = useState(-1);
+  const [modo, setModo] = useState<ModoCena>("criar");
+  const [historico, setHistorico] = useState<Estado[]>([]);
+  const [visaoPiloto, setVisaoPiloto] = useState(false);
+  const [reproduzindo, setReproduzindo] = useState(false);
+  const [velocidade, setVelocidade] = useState(30);
+  const [distancia, setDistancia] = useState(0);
+  const [resumo, setResumo] = useState<ResumoDaRota>({
+    total: 0,
+    invalidos: 0,
+  });
+  const [pronto, setPronto] = useState(false);
+  const [aviso, setAviso] = useState("");
 
-  function atualizarPontos(novos: PontoTracado[]) {
+  const emOnChange = useRef(onChange);
+  useEffect(() => {
+    emOnChange.current = onChange;
+  });
+  useEffect(() => {
+    emOnChange.current({
+      pontos,
+      fechado,
+      invalidos: resumo.invalidos,
+      metros: resumo.total,
+      pronto,
+    });
+  }, [pontos, fechado, resumo, pronto]);
+
+  const aoResumir = useCallback((r: ResumoDaRota) => setResumo(r), []);
+
+  function guardar() {
+    setHistorico((h) => [...h.slice(-79), { pontos, fechado }]);
+  }
+  function parar() {
+    setReproduzindo(false);
+    setDistancia(0);
+  }
+  function mudar(novos: PontoRota[], sel = -1) {
+    guardar();
     setPontos(novos);
-    onChangePontos(novos);
-  }
-
-  function atualizarCurvas(novas: CurvaNomeada[]) {
-    setCurvas(novas);
-    onChangeCurvas(novas);
-  }
-
-  function renomearCurva(indice: number, nome: string) {
-    atualizarCurvas(curvas.map((c, i) => (i === indice ? { ...c, nome } : c)));
-  }
-
-  function removerCurva(indice: number) {
-    atualizarCurvas(curvas.filter((_, i) => i !== indice));
-  }
-
-  function converterClique(evento: React.MouseEvent<SVGSVGElement>) {
-    const svg = svgRef.current;
-    if (!svg) return undefined;
-    const ponto = svg.createSVGPoint();
-    ponto.x = evento.clientX;
-    ponto.y = evento.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return undefined;
-    const local = ponto.matrixTransform(ctm.inverse());
-    return { x: Math.round(local.x), y: Math.round(local.y) };
-  }
-
-  function aoClicar(evento: React.MouseEvent<SVGSVGElement>) {
-    const local = converterClique(evento);
-    if (!local) return;
-    if (modo === "chegada") {
-      setLinhaChegada(local);
-      onChangeLinhaChegada(local);
-    } else if (modo === "curvas") {
-      atualizarCurvas([
-        ...curvas,
-        { ponto: local, nome: `Curva ${curvas.length + 1}` },
-      ]);
-    } else {
-      atualizarPontos([...pontos, local]);
-    }
+    setSelecionado(sel);
+    setAviso("");
+    parar();
   }
 
   function desfazer() {
-    atualizarPontos(pontos.slice(0, -1));
+    const anterior = historico[historico.length - 1];
+    if (!anterior) return;
+    setHistorico((h) => h.slice(0, -1));
+    setPontos(anterior.pontos);
+    setFechado(anterior.fechado);
+    setSelecionado(-1);
+    parar();
   }
-
+  function escolherModo(m: ModoCena) {
+    setVisaoPiloto(false);
+    setReproduzindo(false);
+    setModo(m);
+  }
+  function excluir() {
+    if (selecionado < 0) return;
+    mudar(
+      pontos.filter((_, i) => i !== selecionado),
+      Math.min(selecionado, pontos.length - 2),
+    );
+  }
+  function mover(i: number, direcao: -1 | 1) {
+    const novos = [...pontos];
+    [novos[i], novos[i + direcao]] = [novos[i + direcao], novos[i]];
+    mudar(novos, i + direcao);
+  }
   function limpar() {
-    atualizarPontos([]);
+    if (pontos.length > 0 && !window.confirm("Limpar todos os pontos?")) return;
+    mudar([]);
+  }
+  function carregarExemplo() {
+    mudar(ROTA_EXEMPLO.map((p) => ({ ...p })));
+    setFechado(false);
+    controle.current?.enquadrar("topo");
+  }
+  function exportar() {
+    const corpo = JSON.stringify(
+      paraArquivo({ nome: nomeDoArquivo, fechado, pontos }),
+      null,
+      2,
+    );
+    const url = URL.createObjectURL(
+      new Blob([corpo], { type: "application/json" }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tracado-velokart.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  async function importar(arquivo: File | undefined) {
+    if (!arquivo) return;
+    try {
+      if (arquivo.size > MAX_ARQUIVO_BYTES) {
+        throw new Error("O arquivo deve ter até 500 KB.");
+      }
+      const rota = lerArquivo(JSON.parse(await arquivo.text()));
+      guardar();
+      setPontos(rota.pontos);
+      setFechado(rota.fechado);
+      setSelecionado(-1);
+      setAviso("");
+      parar();
+    } catch (e) {
+      setAviso(
+        `Não foi possível abrir: ${e instanceof Error ? e.message : "arquivo inválido"}`,
+      );
+    }
   }
 
-  function alterarSentido(valor: string) {
-    const novo = (valor || undefined) as SentidoProva | undefined;
-    setSentido(novo);
-    onChangeSentido(novo);
+  function alternarReproducao() {
+    if (resumo.invalidos > 0 || resumo.total === 0) return;
+    if (!reproduzindo) setVisaoPiloto(true);
+    setReproduzindo(!reproduzindo);
   }
 
-  const caminho = pontosParaCurvaSuave(pontos, false);
+  const podeAndar = pronto && pontos.length >= 2 && resumo.total > 0;
+  const dica =
+    aviso ||
+    (resumo.invalidos > 0
+      ? `${resumo.invalidos} trecho(s) fora da pista. Adicione pontos intermediários nas curvas ou arraste os pontos para corrigir.`
+      : (MODOS.find((m) => m.id === modo)?.dica ?? ""));
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setModo("percurso")}
-          className={clsx(
-            "rounded-full px-3 py-1 text-xs font-medium",
-            modo === "percurso" ? "bg-ink text-white" : "bg-ink/5 text-ink-2",
-          )}
-        >
-          Percurso
-        </button>
-        <button
-          type="button"
-          onClick={() => setModo("chegada")}
-          className={clsx(
-            "rounded-full px-3 py-1 text-xs font-medium",
-            modo === "chegada" ? "bg-ink text-white" : "bg-ink/5 text-ink-2",
-          )}
-        >
-          Linha de chegada
-        </button>
-        <button
-          type="button"
-          onClick={() => setModo("curvas")}
-          className={clsx(
-            "rounded-full px-3 py-1 text-xs font-medium",
-            modo === "curvas" ? "bg-ink text-white" : "bg-ink/5 text-ink-2",
-          )}
-        >
-          Nomear curvas
-        </button>
-      </div>
-
-      <div className="border-border-strong overflow-hidden rounded-lg border">
-        <svg
-          ref={svgRef}
-          viewBox={PISTA_VIEWBOX}
-          onClick={aoClicar}
-          className="bg-bg w-full cursor-crosshair"
-        >
-          <image
-            href={PISTA_BASE_SRC}
-            x={0}
-            y={0}
-            width={PISTA_LARGURA}
-            height={PISTA_ALTURA}
-            opacity={0.35}
-          />
-          {/* Linha fina só enquanto marca os pontos — precisa deixar a foto
-          por baixo visível pra clicar em cima da borda certa da pista. O
-          traçado salvo usa o estilo grosso/com glow de verdade em
-          TracadoPreview, não este aqui. */}
-          {pontos.length > 1 ? (
-            <path
-              d={caminho}
-              fill="none"
-              stroke="#8b5cf6"
-              strokeOpacity={0.75}
-              strokeWidth={4}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          ) : null}
-          {pontos.map((p, i) => (
-            <circle
-              key={i}
-              cx={p.x}
-              cy={p.y}
-              r={4}
-              fill={i === 0 ? "#171a23" : "#8b5cf6"}
-              stroke="#ffffff"
-              strokeWidth={1.5}
-            />
-          ))}
-          {linhaChegada ? (
-            <MarcadorLargada ponto={linhaChegada} sentido={sentido} />
-          ) : null}
-          {curvas.map((curva, i) => (
-            <g key={i}>
-              <circle
-                cx={curva.ponto.x}
-                cy={curva.ponto.y}
-                r={9}
-                fill="#f97316"
-                stroke="#ffffff"
-                strokeWidth={1.5}
-              />
-              <text
-                x={curva.ponto.x}
-                y={curva.ponto.y - 14}
-                textAnchor="middle"
-                fontSize={11}
-                fontWeight={700}
-                fill="#171a23"
-                stroke="#ffffff"
-                strokeWidth={3}
-                paintOrder="stroke"
+    <div className="border-border bg-bg flex flex-col gap-3 rounded-lg border p-3">
+      <div className="grid gap-3 lg:grid-cols-[18rem_1fr]">
+        <div className="flex flex-col gap-3">
+          <div
+            role="group"
+            aria-label="Modo de edição"
+            className="grid grid-cols-3 gap-1"
+          >
+            {MODOS.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={modo === m.id}
+                onClick={() => escolherModo(m.id)}
+                className={clsx(
+                  "min-h-11 rounded-md border px-2 text-sm font-medium md:min-h-9",
+                  modo === m.id
+                    ? "border-orange bg-orange text-on-orange"
+                    : "border-border-strong bg-surface text-ink hover:border-orange",
+                )}
               >
-                {curva.nome}
-              </text>
-            </g>
-          ))}
-        </svg>
-      </div>
-
-      {modo === "percurso" ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-ink-3 flex-1 text-xs">
-            Clique sobre o desenho da pista pra marcar os pontos do percurso, na
-            ordem. {pontos.length} ponto{pontos.length === 1 ? "" : "s"} marcado
-            {pontos.length === 1 ? "" : "s"}.
-          </p>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={desfazer}
-            disabled={pontos.length === 0}
-          >
-            Desfazer último ponto
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={limpar}
-            disabled={pontos.length === 0}
-          >
-            Limpar
-          </Button>
-        </div>
-      ) : modo === "chegada" ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="text-ink-3 flex-1 text-xs">
-            Clique sobre a pista pra posicionar o quadriculado de largada
-            {linhaChegada ? " (clique de novo pra reposicionar)" : ""}.
-          </p>
-          <select
-            value={sentido ?? ""}
-            onChange={(e) => alterarSentido(e.target.value)}
-            className="border-border-strong focus:border-orange rounded-md border px-2 py-1 text-xs outline-none"
-          >
-            <option value="">Sentido não definido</option>
-            {OPCOES_SENTIDO.map((opcao) => (
-              <option key={opcao.value} value={opcao.value}>
-                {opcao.label}
-              </option>
+                {m.rotulo}
+              </button>
             ))}
-          </select>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <p className="text-ink-3 text-xs">
-            Clique sobre cada curva da pista pra marcar e dar um nome — esse
-            nome aparece na tela enquanto a linha desenha aquele trecho na
-            apresentação do traçado.
-          </p>
-          {curvas.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
-              {curvas.map((curva, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-ink-3 w-5 shrink-0 text-right text-xs">
-                    {i + 1}
-                  </span>
-                  <input
-                    value={curva.nome}
-                    onChange={(e) => renomearCurva(i, e.target.value)}
-                    className="border-border-strong focus:border-orange flex-1 rounded-md border px-2 py-1 text-sm outline-none"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => removerCurva(i)}
-                  >
-                    Remover
-                  </Button>
-                </div>
-              ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={desfazer}
+              disabled={historico.length === 0}
+            >
+              Desfazer
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => mudar([...pontos].reverse())}
+              disabled={pontos.length < 2}
+            >
+              Inverter
+            </Button>
+          </div>
+          <label className="text-ink flex min-h-11 items-center gap-2 text-sm md:min-h-0">
+            <input
+              type="checkbox"
+              checked={fechado}
+              onChange={(e) => {
+                guardar();
+                setFechado(e.target.checked);
+                parar();
+              }}
+              className="size-4"
+            />
+            Fechar circuito (liga o último ponto ao primeiro)
+          </label>
+          <div className="grid grid-cols-2 gap-2 text-center">
+            <div className="border-border bg-surface rounded-md border p-2">
+              <p className="text-ink font-mono text-lg font-semibold">
+                {pontos.length}
+              </p>
+              <p className="text-ink-3 text-xs uppercase">Pontos</p>
             </div>
-          ) : null}
+            <div className="border-border bg-surface rounded-md border p-2">
+              <p className="text-ink font-mono text-lg font-semibold">
+                {resumo.total.toFixed(0)} m
+              </p>
+              <p className="text-ink-3 text-xs uppercase">Distância estimada</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-ink text-sm font-medium">Pontos do percurso</p>
+            <button
+              type="button"
+              onClick={excluir}
+              disabled={selecionado < 0}
+              className="text-danger min-h-11 px-2 text-xs font-medium hover:underline disabled:opacity-40 md:min-h-0"
+            >
+              Excluir ponto
+            </button>
+          </div>
+          <ol className="border-border bg-surface max-h-52 overflow-y-auto rounded-md border">
+            {pontos.length === 0 ? (
+              <li className="text-ink-3 p-3 text-sm">
+                Nenhum ponto ainda. Use Criar e clique no asfalto.
+              </li>
+            ) : (
+              pontos.map((p, i) => (
+                <li
+                  key={i}
+                  className={clsx(
+                    "border-border flex items-center border-b last:border-b-0",
+                    i === selecionado && "bg-orange/10",
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelecionado(i)}
+                    aria-current={i === selecionado}
+                    className="text-ink min-h-11 flex-1 px-3 text-left font-mono text-xs md:min-h-8"
+                  >
+                    {String(i + 1).padStart(2, "0")} · {p.x.toFixed(1)},{" "}
+                    {p.z.toFixed(1)}
+                  </button>
+                  {([-1, 1] as const).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      disabled={i + d < 0 || i + d >= pontos.length}
+                      aria-label={`Mover ponto ${i + 1} para ${d < 0 ? "cima" : "baixo"}`}
+                      onClick={() => mover(i, d)}
+                      className="text-ink-2 size-11 text-sm disabled:opacity-30 md:size-8"
+                    >
+                      {d < 0 ? "↑" : "↓"}
+                    </button>
+                  ))}
+                </li>
+              ))
+            )}
+          </ol>
+          <div className="grid grid-cols-2 gap-2">
+            <Button type="button" variant="secondary" onClick={carregarExemplo}>
+              Carregar exemplo
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={exportar}
+              disabled={pontos.length === 0}
+            >
+              Exportar JSON
+            </Button>
+            <label className="border-border-strong bg-surface text-ink hover:border-orange inline-flex min-h-11 cursor-pointer items-center justify-center rounded-md border px-3 text-sm font-medium md:min-h-9">
+              Importar JSON
+              <input
+                type="file"
+                accept=".json,application/json"
+                className="sr-only"
+                onChange={(e) => {
+                  void importar(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <Button type="button" variant="ghost" onClick={limpar}>
+              Limpar
+            </Button>
+          </div>
         </div>
-      )}
+
+        <div className="flex flex-col gap-2">
+          <div className="relative">
+            <Pista3D
+              className="h-80 w-full rounded-md sm:h-[26rem]"
+              controle={controle}
+              pontos={pontos}
+              fechado={fechado}
+              selecionado={selecionado}
+              modo={modo}
+              visaoPiloto={visaoPiloto}
+              reproduzindo={reproduzindo}
+              velocidadeKmh={velocidade}
+              onPronto={() => setPronto(true)}
+              onResumo={aoResumir}
+              onAdicionar={(p) => {
+                const indice =
+                  selecionado >= 0 ? selecionado + 1 : pontos.length;
+                const novos = [...pontos];
+                novos.splice(indice, 0, p);
+                mudar(novos, indice);
+              }}
+              onIniciarArraste={() => {
+                guardar();
+                parar();
+              }}
+              onMover={(i, p) =>
+                setPontos((atuais) => atuais.map((q, j) => (j === i ? p : q)))
+              }
+              onSelecionar={setSelecionado}
+              onProgresso={(d) => setDistancia(d)}
+              onFim={() => setReproduzindo(false)}
+              onAviso={setAviso}
+            />
+            <div className="absolute top-2 right-2 flex flex-wrap justify-end gap-1">
+              {(
+                [
+                  ["Vista superior", "topo"],
+                  ["Perspectiva", "perspectiva"],
+                ] as const
+              ).map(([rotulo, vista]) => (
+                <button
+                  key={rotulo}
+                  type="button"
+                  onClick={() => {
+                    setVisaoPiloto(false);
+                    setReproduzindo(false);
+                    controle.current?.enquadrar(vista);
+                  }}
+                  className="bg-graphite/85 hover:bg-graphite min-h-11 rounded-md px-3 text-xs font-medium text-white md:min-h-8"
+                >
+                  {rotulo}
+                </button>
+              ))}
+              <button
+                type="button"
+                aria-pressed={visaoPiloto}
+                disabled={!podeAndar}
+                onClick={() => {
+                  setVisaoPiloto(!visaoPiloto);
+                  if (visaoPiloto) setReproduzindo(false);
+                }}
+                className={clsx(
+                  "min-h-11 rounded-md px-3 text-xs font-medium disabled:opacity-40 md:min-h-8",
+                  visaoPiloto
+                    ? "bg-orange text-on-orange"
+                    : "bg-graphite/85 hover:bg-graphite text-white",
+                )}
+              >
+                Visão do piloto
+              </button>
+            </div>
+            <div
+              role="status"
+              aria-live="polite"
+              className="bg-graphite/85 absolute right-2 bottom-2 left-2 rounded-md px-3 py-2 text-xs text-white"
+            >
+              {dica}
+              <span className="ml-3 whitespace-nowrap text-white/80">
+                <i className="mr-1 inline-block h-2 w-4 rounded-sm bg-[#00b879] align-middle" />
+                Rota
+                <i className="mr-1 ml-2 inline-block h-2 w-4 rounded-sm bg-[#e84d42] align-middle" />
+                Fora da pista
+              </span>
+            </div>
+          </div>
+
+          <div className="border-border bg-surface flex flex-wrap items-center gap-3 rounded-md border p-2">
+            <Button
+              type="button"
+              onClick={alternarReproducao}
+              disabled={!podeAndar || resumo.invalidos > 0}
+            >
+              {reproduzindo ? "Pausar" : "Iniciar"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                parar();
+                controle.current?.reiniciar();
+              }}
+              disabled={!podeAndar}
+            >
+              Reiniciar
+            </Button>
+            <label className="text-ink-2 flex items-center gap-2 text-xs">
+              Velocidade
+              <input
+                type="range"
+                min={5}
+                max={90}
+                value={velocidade}
+                onChange={(e) => setVelocidade(Number(e.target.value))}
+              />
+              <b className="text-ink w-14 font-mono">{velocidade} km/h</b>
+            </label>
+            <div
+              className="bg-border h-1.5 min-w-24 flex-1 overflow-hidden rounded-full"
+              aria-hidden
+            >
+              <div
+                className="bg-orange h-full"
+                style={{
+                  width: `${resumo.total ? (100 * Math.min(distancia, resumo.total)) / resumo.total : 0}%`,
+                }}
+              />
+            </div>
+            <span className="text-ink-2 font-mono text-xs">
+              {distancia.toFixed(0)} / {resumo.total.toFixed(0)} m
+            </span>
+          </div>
+        </div>
+      </div>
+      <p className="text-ink-3 text-xs">
+        Escala e distâncias são estimadas a partir do modelo 3D; servem de
+        referência, não de medição oficial.
+      </p>
     </div>
   );
 }

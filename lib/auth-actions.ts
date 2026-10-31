@@ -1,16 +1,24 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  findPerfilPorEmail,
-  paraSessao,
+  encerrarSessao,
+  getSession,
+  ipDaRequisicao,
+  iniciarSessao,
   podeAcessarAdmin,
-  sessionCookieName,
 } from "@/lib/auth";
-import { verificarSenha } from "@/lib/senha";
+import { registrarAuditoria } from "@/lib/audit";
+import { autenticar } from "@/lib/auth-core";
+import { cookies } from "next/headers";
+import { destinoSeguro } from "@/lib/destino-seguro";
+import {
+  COOKIE_ENTRADA,
+  VALIDADE_ENTRADA_S,
+  destinoComEntrada,
+} from "@/lib/entrada";
 
-export type LoginState = { erro?: string };
+export type LoginState = { erro?: string; email?: string };
 
 export async function loginMockAction(
   _prevState: LoginState,
@@ -21,48 +29,62 @@ export async function loginMockAction(
   const redirectTo = String(formData.get("redirectTo") ?? "/");
 
   if (!email || !senha) {
-    return { erro: "Informe e-mail e senha." };
+    return { erro: "Informe e-mail e senha.", email };
   }
 
-  const perfil = await findPerfilPorEmail(email);
-  if (!perfil) {
-    return { erro: "Não existe conta com esse e-mail." };
+  const resultado = await autenticar(email, senha, await ipDaRequisicao());
+  if (!resultado.ok) {
+    return { erro: resultado.erro, email };
   }
+  const perfil = resultado.perfil;
 
-  // Contas de demonstração não têm senha real (aceitam qualquer uma) — só
-  // quem se cadastrou de verdade em /cadastro tem senhaHash, e aí a senha
-  // precisa bater.
-  if (perfil.senhaHash && !verificarSenha(senha, perfil.senhaHash)) {
-    return { erro: "Senha incorreta." };
-  }
+  await iniciarSessao(perfil);
 
-  const cookieStore = await cookies();
-  cookieStore.set(sessionCookieName(), JSON.stringify(paraSessao(perfil)), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 8,
-  });
+  // Só aceita destino interno (nada que o navegador leve a outro site).
+  const destino = destinoSeguro(redirectTo);
 
-  if (redirectTo.startsWith("/admin") && !podeAcessarAdmin(perfil.papel)) {
-    redirect("/area-do-piloto");
+  if (destino.startsWith("/admin") && !podeAcessarAdmin(perfil.papel)) {
+    return irPara("/area-do-piloto");
   }
 
   // Quem só tem acesso ao admin não tem nada pra ver em /area-do-piloto — a
   // rota genérica do header do site leva pra lá por padrão, então redireciona
-  // quem é admin/fiscal direto pro painel em vez de deixá-lo preso ali.
+  // quem é admin/fiscal/operador direto pro painel em vez de deixá-lo preso ali.
   if (
-    (redirectTo === "/" || redirectTo === "/area-do-piloto") &&
+    (destino === "/" || destino === "/area-do-piloto") &&
     podeAcessarAdmin(perfil.papel)
   ) {
-    redirect("/admin");
+    return irPara("/admin");
   }
 
-  redirect(redirectTo || "/");
+  return irPara(destino);
+}
+
+// Marca a entrada (animação de boas-vindas) só quando o destino a mostra.
+async function irPara(destino: string): Promise<never> {
+  if (destinoComEntrada(destino)) {
+    (await cookies()).set(COOKIE_ENTRADA, "1", {
+      path: "/",
+      sameSite: "lax",
+      maxAge: VALIDADE_ENTRADA_S,
+      secure: process.env.COOKIE_SECURE === "1",
+    });
+  }
+  redirect(destino);
 }
 
 export async function logoutAction() {
-  const cookieStore = await cookies();
-  cookieStore.delete(sessionCookieName());
+  const session = await getSession();
+  await encerrarSessao();
+  (await cookies()).delete(COOKIE_ENTRADA);
+  if (session) {
+    await registrarAuditoria({
+      usuarioId: session.id,
+      acao: "logout",
+      entidade: "login",
+      entidadeId: session.email.toLowerCase(),
+      ip: await ipDaRequisicao(),
+    });
+  }
   redirect("/login");
 }

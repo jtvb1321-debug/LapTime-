@@ -12,7 +12,7 @@ export function VoltaRapidaBadge({
   provisoria?: boolean;
 }) {
   return (
-    <span className="bg-orange inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase">
+    <span className="bg-orange text-on-orange inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase">
       Volta rápida{provisoria ? " (ao vivo)" : ""}
     </span>
   );

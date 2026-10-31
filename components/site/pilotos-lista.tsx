@@ -75,7 +75,7 @@ export function PilotosLista({
                         <button
                           type="button"
                           onClick={() => setPilotoSelecionado(piloto)}
-                          className="text-ink hover:text-orange block truncate text-left font-medium"
+                          className="text-ink hover:text-orange-ink block truncate text-left font-medium"
                         >
                           {nomeExibicaoPiloto(piloto)}
                         </button>
@@ -91,7 +91,7 @@ export function PilotosLista({
                           #{piloto.numero}
                         </p>
                       </div>
-                      <span className="text-orange shrink-0 font-mono text-sm font-semibold">
+                      <span className="text-orange-ink shrink-0 font-mono text-sm font-semibold">
                         {piloto.pontos} pts
                       </span>
                     </div>
@@ -102,7 +102,7 @@ export function PilotosLista({
                     ) : null}
                     <Link
                       href={`/pilotos/${piloto.slug}`}
-                      className="text-orange text-xs font-medium hover:underline"
+                      className="text-orange-ink text-xs font-medium hover:underline"
                     >
                       Ver perfil completo →
                     </Link>
@@ -183,7 +183,7 @@ export function PilotosLista({
             </div>
             <Link
               href={`/pilotos/${pilotoSelecionado.slug}`}
-              className="text-orange text-sm font-medium hover:underline"
+              className="text-orange-ink text-sm font-medium hover:underline"
             >
               Ver perfil completo →
             </Link>

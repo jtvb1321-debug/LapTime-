@@ -1,7 +1,10 @@
 // Formatos espelham as tabelas planejadas em supabase/migrations (ver README).
 // Mantidos aqui para a camada de dados fictícios e para as queries reais usarem o mesmo shape.
 
-export type PapelUsuario = "admin" | "fiscal" | "piloto";
+import type { PontoRota } from "@/lib/tracado3d/rota";
+
+export type PapelUsuario =
+  "admin" | "fiscal" | "operador" | "recepcao" | "piloto";
 
 export interface Perfil {
   id: string;
@@ -40,34 +43,21 @@ export interface Etapa {
   tracadoId?: string;
 }
 
-export interface PontoTracado {
-  x: number;
-  y: number;
-}
-
-export type SentidoProva = "horario" | "anti_horario";
-
-// Um ponto marcado perto de uma curva do traçado, só pra dar nome a ela
-// (ex.: "Curva do Lago", "S do Senna") — não faz parte do percurso em si
-// (`pontos`), é só uma referência de posição pra saber qual curva é qual
-// na hora de mostrar o nome durante a revelação do traçado.
-export interface CurvaNomeada {
-  ponto: PontoTracado;
-  nome: string;
-}
+// Ponto da rota sobre o modelo 3D do kartódromo (X/Z do mundo, em metros
+// estimados). Definido em lib/tracado3d/rota.ts.
+export type { PontoRota };
 
 export interface Tracado {
   id: string;
   nome: string;
-  // Percurso marcado sobre a pista-base compartilhada (public/pista-base.svg),
-  // em coordenadas do viewBox dela — não é mais uma imagem própria por
-  // traçado, e sim uma trilha de pontos desenhada em cima da pista inteira.
-  pontos: PontoTracado[];
-  linhaChegada?: PontoTracado;
-  sentido?: SentidoProva;
+  // Percurso desenhado no editor 3D, sobre o asfalto do modelo. Os pontos
+  // originais ficam editáveis; a curva suave é calculada a partir deles.
+  pontos: PontoRota[];
+  // Circuito fechado (repete voltas) ou rota aberta.
+  fechado: boolean;
+  // Distância estimada pelo editor, em metros (referência, não medição).
   extensaoMetros?: number;
   descricao?: string;
-  curvas?: CurvaNomeada[];
 }
 
 export interface Serie {

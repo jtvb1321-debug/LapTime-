@@ -2,17 +2,21 @@ import { clsx } from "clsx";
 import Link from "next/link";
 import type { ButtonHTMLAttributes } from "react";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "dark" | "secondary" | "ghost";
 
+// primary: ação principal (laranja da marca, texto grafite por contraste AA);
+// dark: ação forte sem destaque de marca; secondary/ghost: ações de apoio.
 const VARIANT_CLASSES: Record<Variant, string> = {
-  primary: "bg-ink text-white hover:bg-ink/90",
+  primary: "bg-orange text-on-orange hover:bg-orange-soft",
+  dark: "bg-ink text-white hover:bg-ink/90",
   secondary:
-    "bg-surface text-ink border border-border-strong hover:border-orange/50 hover:text-orange",
-  ghost: "text-ink-2 hover:text-orange hover:bg-orange/5",
+    "bg-surface text-ink border border-border-strong hover:border-orange hover:text-orange-ink",
+  ghost: "text-ink-2 hover:text-orange-ink hover:bg-orange/10",
 };
 
+// Alvo de toque de 44 px no celular/tablet; compacto no computador.
 const BASE =
-  "inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors md:min-h-9 disabled:opacity-50 disabled:pointer-events-none aria-busy:cursor-progress";
 
 export function Button({
   variant = "primary",

@@ -5,8 +5,8 @@ import { Card, CardBody } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Dialog } from "@/components/ui/dialog";
 import { PosicaoBadge } from "@/components/ui/posicao-badge";
-import { TracadoPreview } from "@/components/tracado-preview";
-import { TracadoCena3D } from "@/components/tracado-cena-3d";
+import { TracadoMiniatura } from "@/components/tracado/tracado-miniatura";
+import { VisualizadorTracado } from "@/components/tracado/visualizador-tracado";
 import {
   baterias,
   formatData,
@@ -19,14 +19,11 @@ import {
   getRecordeDoTracado,
   getUltimasVitoriasDoTracado,
   nomeExibicaoPiloto,
+  substituirDadosDeCorrida,
 } from "@/lib/mock/data";
+import { CHAVE_TRACADOS } from "@/lib/tracado3d/rota";
 import { useMockStore } from "@/lib/use-mock-store";
-import type { Etapa, Tracado } from "@/lib/types";
-
-const OPCOES_SENTIDO = {
-  horario: "Horário",
-  anti_horario: "Anti-horário",
-} as const;
+import type { Bateria, Etapa, Piloto, Resultado, Tracado } from "@/lib/types";
 
 // Client component pelo mesmo motivo do calendário: traçados cadastrados no
 // admin ficam no localStorage (useMockStore), então a página precisa lê-lo
@@ -34,11 +31,25 @@ const OPCOES_SENTIDO = {
 export function TracadosLista({
   tracadosIniciais,
   etapasIniciais,
+  dadosCorrida,
 }: {
   tracadosIniciais: Tracado[];
   etapasIniciais: Etapa[];
+  dadosCorrida: {
+    pilotos: Piloto[];
+    baterias: Bateria[];
+    resultados: Resultado[];
+  };
 }) {
-  const [tracados] = useMockStore("gridlap:tracados", tracadosIniciais);
+  // Os helpers de recorde/voltas lêem os arrays de lib/mock/data.ts. No
+  // navegador esses arrays começam vazios (a simulação vive no servidor),
+  // então copia o snapshot que o servidor mandou antes de calcular qualquer
+  // coisa — no servidor os arrays já estão certos.
+  if (typeof window !== "undefined") {
+    substituirDadosDeCorrida({ ...dadosCorrida, simulacaoAtiva: false });
+  }
+
+  const [tracados] = useMockStore(CHAVE_TRACADOS, tracadosIniciais);
   const [etapas] = useMockStore("gridlap:etapas", etapasIniciais);
   const [tracadoSelecionado, setTracadoSelecionado] = useState<Tracado | null>(
     null,
@@ -128,12 +139,10 @@ export function TracadosLista({
           >
             <Card className="hover:border-orange/40 overflow-hidden transition-colors">
               <div className="relative bg-[#12141b]">
-                <TracadoPreview
+                <TracadoMiniatura
                   pontos={tracado.pontos}
-                  linhaChegada={tracado.linhaChegada}
-                  sentido={tracado.sentido}
+                  fechado={tracado.fechado}
                   comGlow
-                  aspectRatio={2}
                   className="h-48 w-full"
                 />
                 <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4">
@@ -143,7 +152,7 @@ export function TracadosLista({
                   <div className="self-end text-right">
                     {tracado.extensaoMetros ? (
                       <p className="text-[11px] tracking-widest text-white/70 uppercase">
-                        Extensão {tracado.extensaoMetros}m
+                        Extensão ≈ {tracado.extensaoMetros}m
                       </p>
                     ) : null}
                     {etapasDoTracado.length > 0 ? (
@@ -187,16 +196,13 @@ export function TracadosLista({
               ref={previewGrandeRef}
               className="relative overflow-hidden rounded-md"
             >
-              <TracadoCena3D
+              <VisualizadorTracado
                 key={tracadoSelecionado.id}
-                pontos={tracadoSelecionado.pontos}
-                linhaChegada={tracadoSelecionado.linhaChegada}
-                sentido={tracadoSelecionado.sentido}
-                curvas={tracadoSelecionado.curvas}
-                className="h-64 w-full sm:h-72"
+                tracado={tracadoSelecionado}
+                className="h-64 sm:h-80"
               />
               <div
-                className="pointer-events-none absolute right-4 bottom-4 max-w-[60%] rounded-lg bg-white/85 px-3 py-2 text-right opacity-0 backdrop-blur-sm"
+                className="pointer-events-none absolute top-4 right-4 max-w-[55%] rounded-lg bg-white/85 px-3 py-2 text-right opacity-0 backdrop-blur-sm"
                 style={{
                   animation: "tracado-fade-label 0.5s ease-out 1.5s forwards",
                 }}
@@ -206,7 +212,7 @@ export function TracadosLista({
                 </p>
                 {tracadoSelecionado.extensaoMetros ? (
                   <p className="text-ink-2 mt-1 text-[11px] font-semibold tracking-widest uppercase sm:text-sm">
-                    Extensão {tracadoSelecionado.extensaoMetros}m
+                    Extensão ≈ {tracadoSelecionado.extensaoMetros}m
                   </p>
                 ) : null}
               </div>
@@ -228,37 +234,6 @@ export function TracadosLista({
                       {nomeExibicaoPiloto(pilotoDoRecorde)}
                     </p>
                   ) : null}
-                </div>
-              ) : null}
-              {melhoresVoltas.length > 0 ? (
-                <div
-                  className="pointer-events-none absolute bottom-4 left-4 max-w-[55%] rounded-lg bg-white/85 px-3 py-2 opacity-0 backdrop-blur-sm"
-                  style={{
-                    animation: "tracado-fade-label 0.5s ease-out 1.8s forwards",
-                  }}
-                >
-                  <p className="text-ink-2 mb-1 text-[9px] font-semibold tracking-widest uppercase sm:text-[10px]">
-                    Voltas mais rápidas
-                  </p>
-                  <div className="flex flex-col gap-0.5">
-                    {melhoresVoltas.slice(0, 3).map((resultado, indice) => {
-                      const pilotoDaVolta = getPilotoById(resultado.pilotoId);
-                      return (
-                        <p
-                          key={resultado.id}
-                          className="text-ink truncate font-mono text-[10px] font-semibold sm:text-xs"
-                        >
-                          {indice + 1}º{" "}
-                          {pilotoDaVolta
-                            ? nomeExibicaoPiloto(pilotoDaVolta)
-                            : "—"}{" "}
-                          <span className="text-ink font-black">
-                            {formatTempoVolta(resultado.melhorVoltaMs)}
-                          </span>
-                        </p>
-                      );
-                    })}
-                  </div>
                 </div>
               ) : null}
             </div>
@@ -283,18 +258,16 @@ export function TracadosLista({
                     </p>
                     <p className="text-ink font-medium">
                       {tracadoSelecionado.extensaoMetros
-                        ? `${tracadoSelecionado.extensaoMetros} m`
+                        ? `≈ ${tracadoSelecionado.extensaoMetros} m`
                         : "—"}
                     </p>
                   </div>
                   <div>
                     <p className="text-ink-3 text-xs tracking-wide uppercase">
-                      Sentido
+                      Tipo
                     </p>
                     <p className="text-ink font-medium">
-                      {tracadoSelecionado.sentido
-                        ? OPCOES_SENTIDO[tracadoSelecionado.sentido]
-                        : "—"}
+                      {tracadoSelecionado.fechado ? "Circuito" : "Rota aberta"}
                     </p>
                   </div>
                   <div>

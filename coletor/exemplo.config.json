@@ -1,0 +1,10 @@
+{
+  "_exemplo": "Modelo ilustrativo: o 'formato' abaixo é inventado só para mostrar a sintaxe. Use o formato real do seu decoder (veja LEIA-ME.md).",
+  "servidor": "http://localhost:3001",
+  "token": "gl_dec_cole-aqui-o-token-do-decoder",
+  "driver": "linhas-tcp",
+  "host": "192.168.1.50",
+  "porta": 5100,
+  "formato": "(?<transponder>\\d+);(?<tempo>[\\d.]+)",
+  "unidadeTempo": "s"
+}

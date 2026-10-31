@@ -116,7 +116,7 @@ export function CampeonatosTable({
               className="border-border-strong focus:border-orange rounded-md border px-3 py-2 text-sm outline-none"
             />
           </div>
-          {erro ? <p className="text-orange text-sm">{erro}</p> : null}
+          {erro ? <p className="text-orange-ink text-sm">{erro}</p> : null}
           <div className="flex justify-end">
             <Button onClick={criarCampeonato}>Criar campeonato</Button>
           </div>

@@ -26,7 +26,7 @@ export function CampeonatoTabs() {
             className={clsx(
               "shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
               ativo
-                ? "border-orange text-orange"
+                ? "border-orange text-orange-ink"
                 : "text-ink-2 hover:text-ink border-transparent",
             )}
           >

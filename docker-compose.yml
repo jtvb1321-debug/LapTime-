@@ -1,0 +1,73 @@
+name: gridlap
+
+# Antes do primeiro "docker compose up": copie .env.example para .env e
+# troque DB_PASSWORD por uma senha longa e aleatória.
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gridlap
+      POSTGRES_DB: gridlap
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no arquivo .env}
+    volumes:
+      - gridlap-db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gridlap -d gridlap"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # O banco NÃO é exposto fora da rede do compose.
+
+  backup:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: gridlap
+      PGDATABASE: gridlap
+      PGPASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no arquivo .env}
+    volumes:
+      - ./backups:/backups
+    # Um dump por dia (comprimido) e guarda os últimos 14 dias.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        while true; do
+          arquivo="/backups/gridlap-$$(date +%Y%m%d-%H%M%S).sql.gz"
+          if pg_dump | gzip > "$$arquivo.tmp"; then
+            mv "$$arquivo.tmp" "$$arquivo"
+            echo "backup ok: $$arquivo"
+          else
+            rm -f "$$arquivo.tmp"
+            echo "backup FALHOU" >&2
+          fi
+          find /backups -name 'gridlap-*.sql.gz' -mtime +14 -delete
+          sleep 86400
+        done
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://gridlap:${DB_PASSWORD:?defina DB_PASSWORD no arquivo .env}@db:5432/gridlap
+      # 1 somente quando o site for servido por HTTPS.
+      COOKIE_SECURE: ${COOKIE_SECURE:-0}
+      # 1 reativa as contas de demonstração sem senha. Deixe 0.
+      AUTH_CONTAS_DEMO: ${AUTH_CONTAS_DEMO:-0}
+    volumes:
+      # Arquivos JSON antigos: só lidos uma vez, na importação para o banco.
+      - gridlap-data:/app/.data
+
+volumes:
+  gridlap-db:
+  gridlap-data:

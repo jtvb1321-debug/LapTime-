@@ -19,6 +19,45 @@ import type {
   Resultado,
   Tracado,
 } from "@/lib/types";
+import { ROTA_EXEMPLO } from "@/lib/tracado3d/rota-exemplo";
+
+// Pilotos, baterias e resultados são os dados "de corrida": começam vazios e
+// só ganham conteúdo quando a simulação é ligada no painel admin
+// (lib/simulacao.ts). Os arrays ficam em globalThis e são alterados no lugar
+// (splice) — assim todas as páginas, rotas de API e o instrumentation, que o
+// Next compila em pacotes separados, enxergam os mesmos dados.
+interface EstadoDados {
+  pilotos: Piloto[];
+  baterias: Bateria[];
+  resultados: Resultado[];
+  simulacaoAtiva: boolean;
+}
+const estado = ((
+  globalThis as typeof globalThis & { __gridlapDados?: EstadoDados }
+).__gridlapDados ??= {
+  pilotos: [],
+  baterias: [],
+  resultados: [],
+  simulacaoAtiva: false,
+});
+
+export function simulacaoEstaAtiva() {
+  return estado.simulacaoAtiva;
+}
+
+// Troca o conteúdo dos arrays de corrida (usado pela simulação no servidor e
+// pelo componente de traçados no navegador, que precisa do mesmo snapshot).
+export function substituirDadosDeCorrida(dados: {
+  pilotos: Piloto[];
+  baterias: Bateria[];
+  resultados: Resultado[];
+  simulacaoAtiva: boolean;
+}) {
+  estado.pilotos.splice(0, estado.pilotos.length, ...dados.pilotos);
+  estado.baterias.splice(0, estado.baterias.length, ...dados.baterias);
+  estado.resultados.splice(0, estado.resultados.length, ...dados.resultados);
+  estado.simulacaoAtiva = dados.simulacaoAtiva;
+}
 
 // Simulação de uma etapa completa (Copa VeloKart) — balizamento, sorteio de
 // kart (sem repetir o mesmo kart pro mesmo piloto entre classificatória e
@@ -70,7 +109,6 @@ export const etapas: Etapa[] = [
     cidade: "Cotia",
     data: "2026-09-21",
     status: "agendada",
-    tracadoId: "tracado-tradicional",
   },
 ];
 
@@ -80,228 +118,20 @@ export const etapas: Etapa[] = [
 export const tracados: Tracado[] = [
   {
     id: "tracado-copa-velokart",
-    nome: "Traçado Principal",
-    descricao: "Traçado oficial da Copa VeloKart.",
-    extensaoMetros: 980,
-    pontos: [
-      { x: 150, y: 120 },
-      { x: 300, y: 100 },
-      { x: 420, y: 130 },
-      { x: 500, y: 220 },
-      { x: 480, y: 320 },
-      { x: 380, y: 340 },
-      { x: 340, y: 400 },
-      { x: 420, y: 440 },
-      { x: 380, y: 480 },
-      { x: 260, y: 460 },
-      { x: 180, y: 420 },
-      { x: 120, y: 340 },
-      { x: 100, y: 240 },
-      { x: 110, y: 170 },
-    ],
-    linhaChegada: { x: 225, y: 105 },
-    sentido: "horario",
-    curvas: [
-      { ponto: { x: 500, y: 220 }, nome: "Curva do Lago" },
-      { ponto: { x: 420, y: 440 }, nome: "S da Reta" },
-      { ponto: { x: 100, y: 240 }, nome: "Curva Final" },
-    ],
-  },
-  {
-    id: "tracado-tradicional",
-    nome: "Tradicional",
-    descricao: "Configuração clássica do kartódromo, mais técnica e sinuosa.",
-    extensaoMetros: 1112,
-    pontos: [
-      { x: 200, y: 380 },
-      { x: 130, y: 340 },
-      { x: 110, y: 260 },
-      { x: 140, y: 190 },
-      { x: 120, y: 130 },
-      { x: 160, y: 90 },
-      { x: 210, y: 110 },
-      { x: 230, y: 160 },
-      { x: 260, y: 110 },
-      { x: 300, y: 90 },
-      { x: 340, y: 130 },
-      { x: 330, y: 190 },
-      { x: 360, y: 240 },
-      { x: 400, y: 260 },
-      { x: 410, y: 320 },
-      { x: 360, y: 370 },
-      { x: 290, y: 390 },
-      { x: 240, y: 400 },
-    ],
-    linhaChegada: { x: 215, y: 391 },
-    sentido: "anti_horario",
-    curvas: [
-      { ponto: { x: 130, y: 340 }, nome: "Curva do Grid" },
-      { ponto: { x: 160, y: 90 }, nome: "Forquilha Esquerda" },
-      { ponto: { x: 300, y: 90 }, nome: "Forquilha Direita" },
-      { ponto: { x: 400, y: 260 }, nome: "Curva do Boxes" },
-      { ponto: { x: 290, y: 390 }, nome: "Curva Final" },
-    ],
+    nome: "Reta dos boxes (exemplo)",
+    descricao:
+      "Rota de exemplo no modelo 3D, provisória. Redesenhe o traçado oficial em Admin > Traçados.",
+    extensaoMetros: 129,
+    fechado: false,
+    pontos: ROTA_EXEMPLO,
   },
 ];
 
 // Pilotos cadastrados em /cadastro persistem em lib/pilotos-store.ts (um
-// arquivo no servidor) e não aparecem aqui — mas várias páginas ainda usam
-// os helpers síncronos abaixo (getPilotoById etc.), que só enxergam este
-// array. Por isso a Copa VeloKart também fica semeada aqui, igual ao
-// arquivo do servidor: cobre as duas formas de leitura sem precisar tornar
-// toda leitura de piloto assíncrona agora.
-export const pilotos: Piloto[] = [
-  {
-    id: "pil-eduardo",
-    nome: "Eduardo Santos",
-    apelido: "Duda Santos",
-    slug: "eduardo-santos",
-    numero: 21,
-    categoriaId: "cat-master",
-    uf: "SP",
-    idade: 29,
-    pesoKg: 78,
-    avatarUrl: "/pilotos/eduardo-santos.jpg",
-    corNumero: "#22c55e",
-    corAssinatura: "#f2f5f7",
-    vitorias: 0,
-    podios: 0,
-    pontos: 0,
-    posicaoCampeonato: 1,
-  },
-  {
-    id: "pil-jhonattan",
-    nome: "Jhonattan Santos",
-    apelido: "Jhow Santos",
-    slug: "jhonattan-santos",
-    numero: 24,
-    categoriaId: "cat-master",
-    uf: "BA",
-    idade: 27,
-    pesoKg: 74,
-    corNumero: "#f59e0b",
-    corAssinatura: "#f2f5f7",
-    vitorias: 0,
-    podios: 0,
-    pontos: 0,
-    posicaoCampeonato: 2,
-  },
-  {
-    id: "pil-bruno",
-    nome: "Bruno Bonfim",
-    apelido: "Bonfim",
-    slug: "bruno-bonfim",
-    numero: 20,
-    categoriaId: "cat-master",
-    uf: "RJ",
-    idade: 33,
-    pesoKg: 81,
-    corNumero: "#22d3ee",
-    corAssinatura: "#f2f5f7",
-    vitorias: 0,
-    podios: 0,
-    pontos: 0,
-    posicaoCampeonato: 3,
-  },
-  {
-    id: "pil-igor",
-    nome: "Igor Barradas",
-    slug: "igor-barradas",
-    numero: 23,
-    categoriaId: "cat-master",
-    uf: "MG",
-    idade: 25,
-    pesoKg: 70,
-    vitorias: 0,
-    podios: 0,
-    pontos: 0,
-    posicaoCampeonato: 4,
-  },
-  {
-    id: "pil-enzo",
-    nome: "Enzo Gabriel",
-    slug: "enzo-gabriel",
-    numero: 22,
-    categoriaId: "cat-master",
-    uf: "PR",
-    idade: 22,
-    pesoKg: 68,
-    vitorias: 0,
-    podios: 0,
-    pontos: 0,
-    posicaoCampeonato: 5,
-  },
-  {
-    id: "pil-braulio",
-    nome: "Braulio Batista",
-    slug: "braulio-batista",
-    numero: 25,
-    categoriaId: "cat-master",
-    uf: "SC",
-    idade: 31,
-    pesoKg: 83,
-    vitorias: 0,
-    podios: 0,
-    pontos: 0,
-    posicaoCampeonato: 6,
-  },
-  {
-    id: "pil-cirilo",
-    nome: "Cirilo Andrade",
-    slug: "cirilo-andrade",
-    numero: 26,
-    categoriaId: "cat-master",
-    uf: "RS",
-    idade: 36,
-    pesoKg: 85,
-    vitorias: 0,
-    podios: 0,
-    pontos: 0,
-    posicaoCampeonato: 7,
-  },
-  {
-    id: "pil-italo",
-    nome: "Italo Veloso",
-    slug: "italo-veloso",
-    numero: 28,
-    categoriaId: "cat-master",
-    uf: "CE",
-    idade: 24,
-    pesoKg: 72,
-    vitorias: 0,
-    podios: 0,
-    pontos: 0,
-    posicaoCampeonato: 8,
-  },
-  {
-    id: "pil-vinicius",
-    nome: "Vinicius Santhiago",
-    slug: "vinicius-santhiago",
-    numero: 29,
-    categoriaId: "cat-master",
-    uf: "ES",
-    idade: 38,
-    pesoKg: 87,
-    vitorias: 0,
-    podios: 0,
-    pontos: 0,
-    posicaoCampeonato: 9,
-  },
-  {
-    id: "pil-elenilton",
-    nome: "Elenilton Bessa",
-    slug: "elenilton-bessa",
-    numero: 27,
-    categoriaId: "cat-master",
-    uf: "PE",
-    idade: 34,
-    pesoKg: 76,
-    vitorias: 0,
-    podios: 0,
-    pontos: 0,
-    posicaoCampeonato: 10,
-  },
-];
+// arquivo no servidor). Este array guarda só os pilotos SIMULADOS (vazio com a
+// simulação desligada), pra os helpers síncronos (getPilotoById etc.)
+// enxergarem os mesmos pilotos que os resultados simulados referenciam.
+export const pilotos: Piloto[] = estado.pilotos;
 
 // Frota física de karts do kartódromo — independe de qual campeonato/etapa
 // está rodando, por isso continua populada mesmo com o restante zerado.
@@ -315,10 +145,9 @@ export const karts: Kart[] = Array.from({ length: 24 }, (_, i) => {
   } satisfies Kart;
 });
 
-export const baterias: Bateria[] = [];
+export const baterias: Bateria[] = estado.baterias;
 
-// Nenhuma bateria rodou ainda — sem resultados simulados.
-export const resultados: Resultado[] = [];
+export const resultados: Resultado[] = estado.resultados;
 
 export const inscricoes: Inscricao[] = [];
 

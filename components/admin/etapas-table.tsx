@@ -164,7 +164,7 @@ export function EtapasTable({
               ))}
             </select>
           </div>
-          {erro ? <p className="text-orange text-sm">{erro}</p> : null}
+          {erro ? <p className="text-orange-ink text-sm">{erro}</p> : null}
           <div className="flex justify-end">
             <Button onClick={criarEtapa}>Criar etapa</Button>
           </div>

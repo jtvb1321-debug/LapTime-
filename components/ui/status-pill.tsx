@@ -1,12 +1,25 @@
 import { clsx } from "clsx";
 
-type Tone = "ink" | "orange" | "orange-soft" | "neutral";
+export type Tone =
+  | "ink"
+  | "orange"
+  | "orange-soft"
+  | "neutral"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info";
 
 const TONE_CLASSES: Record<Tone, string> = {
   ink: "bg-ink text-white",
-  orange: "bg-orange/10 text-orange",
-  "orange-soft": "bg-orange-soft/10 text-orange-soft",
+  orange: "bg-orange/10 text-orange-ink",
+  // "orange-soft" = pendente/atenção: usa a cor de alerta, não a da marca.
+  "orange-soft": "bg-warning-bg text-warning",
   neutral: "bg-ink/5 text-ink-2",
+  success: "bg-success-bg text-success",
+  warning: "bg-warning-bg text-warning",
+  danger: "bg-danger-bg text-danger",
+  info: "bg-info-bg text-info",
 };
 
 export function StatusPill({

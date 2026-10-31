@@ -13,7 +13,13 @@ const CONTAS_DEMO = [
   { email: "jhonattan@gridlap.com.br", papel: "piloto" },
 ];
 
-export function LoginForm({ redirectTo }: { redirectTo: string }) {
+export function LoginForm({
+  redirectTo,
+  mostrarContasDemo = false,
+}: {
+  redirectTo: string;
+  mostrarContasDemo?: boolean;
+}) {
   const [state, formAction, pending] = useActionState(
     loginMockAction,
     ESTADO_INICIAL,
@@ -33,6 +39,8 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
             name="email"
             type="email"
             required
+            defaultValue={state.email}
+            autoComplete="username"
             className="border-border-strong bg-surface text-ink focus:border-orange rounded-md border px-3 py-2 text-sm outline-none"
           />
         </div>
@@ -46,12 +54,15 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
             name="senha"
             type="password"
             required
+            autoComplete="current-password"
             className="border-border-strong bg-surface text-ink focus:border-orange rounded-md border px-3 py-2 text-sm outline-none"
           />
         </div>
 
         {state.erro ? (
-          <p className="text-orange text-sm">{state.erro}</p>
+          <p role="alert" className="text-orange-ink text-sm">
+            {state.erro}
+          </p>
         ) : null}
 
         <Button type="submit" disabled={pending} className="w-full">
@@ -63,24 +74,26 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
         Ainda não tem conta?{" "}
         <Link
           href="/cadastro"
-          className="text-orange font-medium hover:underline"
+          className="text-orange-ink font-medium hover:underline"
         >
           Cadastre-se como piloto
         </Link>
       </p>
 
-      <div className="border-border bg-bg text-ink-2 rounded-md border px-4 py-3 text-xs">
-        <p className="text-ink-2 mb-1.5 font-medium">
-          Contas de demonstração (modo local, qualquer senha):
-        </p>
-        <ul className="flex flex-col gap-0.5 font-mono">
-          {CONTAS_DEMO.map((conta) => (
-            <li key={conta.email}>
-              {conta.email} — {conta.papel}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {mostrarContasDemo ? (
+        <div className="border-border bg-bg text-ink-2 rounded-md border px-4 py-3 text-xs">
+          <p className="text-ink-2 mb-1.5 font-medium">
+            Contas de demonstração (modo local, qualquer senha):
+          </p>
+          <ul className="flex flex-col gap-0.5 font-mono">
+            {CONTAS_DEMO.map((conta) => (
+              <li key={conta.email}>
+                {conta.email} — {conta.papel}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }

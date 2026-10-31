@@ -198,7 +198,7 @@ export function BalizamentoCategoria({
                         <button
                           type="button"
                           onClick={() => solicitarTroca(pilotoAtual.id)}
-                          className="text-orange shrink-0 text-xs font-medium hover:underline"
+                          className="text-orange-ink shrink-0 text-xs font-medium hover:underline"
                         >
                           Registrar
                         </button>

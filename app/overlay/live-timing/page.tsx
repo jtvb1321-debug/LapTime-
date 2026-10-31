@@ -195,7 +195,7 @@ export default function OverlayLiveTimingPage() {
     <>
       <div className="bg-surface/95 fixed top-4 left-4 flex w-[340px] flex-col overflow-hidden rounded-lg font-sans shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
         <div className="flex flex-col">
-          <div className="bg-orange flex items-center justify-between gap-2 px-3 py-1.5 text-[11px] font-bold tracking-wide text-white uppercase">
+          <div className="bg-orange text-on-orange flex items-center justify-between gap-2 px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase">
             <span className="truncate">{bateria?.categoria ?? "—"}</span>
             <span className="shrink-0">{bateria?.etapa ?? ""}</span>
           </div>
@@ -208,7 +208,7 @@ export default function OverlayLiveTimingPage() {
               {bateria?.numero === 1 ? "Classificação" : "Ao vivo"}
             </span>
           </div>
-          <div className="bg-orange flex items-center justify-between gap-2 px-3 py-1.5 text-[11px] font-bold tracking-wide text-white uppercase">
+          <div className="bg-orange text-on-orange flex items-center justify-between gap-2 px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase">
             <span>Volta</span>
             <span className="font-mono">
               {pilotos[0]?.voltaAtual ?? "-"}/{bateria?.voltas ?? "-"}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
+import { contasDemoPermitidas } from "@/lib/auth-core";
 
 export const metadata: Metadata = { title: "Entrar" };
 
@@ -13,7 +14,7 @@ export default async function LoginPage({
   const { redirectTo } = await searchParams;
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6">
+    <div className="fundo-grafite flex min-h-screen items-center justify-center px-4">
       <div className="border-border bg-surface w-full max-w-sm rounded-lg border p-6">
         <Link href="/" className="mx-auto block w-48">
           <Image
@@ -27,7 +28,10 @@ export default async function LoginPage({
         <p className="text-ink-2 mt-4 mb-6 text-center text-sm">
           Entre para acessar a área do piloto ou o admin.
         </p>
-        <LoginForm redirectTo={redirectTo ?? "/"} />
+        <LoginForm
+          redirectTo={redirectTo ?? "/"}
+          mostrarContasDemo={contasDemoPermitidas()}
+        />
       </div>
     </div>
   );

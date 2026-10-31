@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Executável do agente gerado por npm run agente:exe (não é código-fonte).
+    "coletor/dist/**",
   ]),
 ]);
 

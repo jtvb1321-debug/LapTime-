@@ -6,12 +6,14 @@ import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import { useState } from "react";
 import type { SessionUser } from "@/lib/auth";
+import { pode } from "@/lib/permissoes";
 
 const LINKS = [
   { href: "/", label: "Início" },
   { href: "/campeonato", label: "Campeonato" },
   { href: "/pilotos", label: "Pilotos" },
   { href: "/categorias", label: "Categorias" },
+  { href: "/horarios", label: "Horários" },
   { href: "/regulamento", label: "Regulamento" },
   { href: "/inscricao", label: "Inscrição" },
 ];
@@ -19,17 +21,18 @@ const LINKS = [
 export function SiteHeader({ session }: { session: SessionUser | null }) {
   const pathname = usePathname();
   const [menuAberto, setMenuAberto] = useState(false);
-  const ehAdminOuFiscal =
-    session?.papel === "admin" || session?.papel === "fiscal";
+  const ehAdminOuFiscal = session
+    ? pode(session.papel, "painel.acessar")
+    : false;
   const destinoConta = ehAdminOuFiscal ? "/admin" : "/area-do-piloto";
 
   return (
-    <header className="border-border bg-surface border-b">
+    <header className="bg-graphite border-orange border-b-2 text-white">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
         <Link
           href="/"
           onClick={() => setMenuAberto(false)}
-          className="block w-32 shrink-0"
+          className="block w-32 shrink-0 rounded bg-white p-0.5"
         >
           <Image
             src="/logo-gridlap.webp"
@@ -53,8 +56,8 @@ export function SiteHeader({ session }: { session: SessionUser | null }) {
                 className={clsx(
                   "rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   ativo
-                    ? "bg-orange/10 text-orange"
-                    : "text-ink-2 hover:bg-ink/5 hover:text-ink",
+                    ? "bg-orange text-on-orange"
+                    : "text-white/80 hover:bg-white/10 hover:text-white",
                 )}
               >
                 {link.label}
@@ -66,7 +69,7 @@ export function SiteHeader({ session }: { session: SessionUser | null }) {
         <div className="flex items-center gap-2">
           <Link
             href={destinoConta}
-            className="border-border-strong text-ink hover:border-orange/50 hover:text-orange rounded-md border px-3 py-2 text-sm font-medium"
+            className="hover:border-orange hover:text-orange flex min-h-11 items-center rounded-md border border-white/30 px-3 py-2 text-sm font-medium text-white md:min-h-9"
           >
             {session
               ? ehAdminOuFiscal
@@ -79,7 +82,7 @@ export function SiteHeader({ session }: { session: SessionUser | null }) {
             type="button"
             onClick={() => setMenuAberto((aberto) => !aberto)}
             aria-label={menuAberto ? "Fechar menu" : "Abrir menu"}
-            className="text-ink-2 hover:text-ink hover:bg-ink/5 -mr-1 rounded-md p-1.5 md:hidden"
+            className="-mr-1 flex size-11 items-center justify-center rounded-md text-white/80 hover:bg-white/10 hover:text-white md:hidden"
           >
             {menuAberto ? (
               <svg
@@ -115,7 +118,7 @@ export function SiteHeader({ session }: { session: SessionUser | null }) {
       </div>
 
       {menuAberto ? (
-        <nav className="border-border flex flex-col gap-1 border-t px-4 py-3 md:hidden">
+        <nav className="flex flex-col gap-1 border-t border-white/15 px-4 py-3 md:hidden">
           {LINKS.map((link) => {
             const ativo =
               link.href === "/"
@@ -129,8 +132,8 @@ export function SiteHeader({ session }: { session: SessionUser | null }) {
                 className={clsx(
                   "rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   ativo
-                    ? "bg-orange/10 text-orange"
-                    : "text-ink-2 hover:bg-ink/5 hover:text-ink",
+                    ? "bg-orange text-on-orange"
+                    : "text-white/80 hover:bg-white/10 hover:text-white",
                 )}
               >
                 {link.label}
