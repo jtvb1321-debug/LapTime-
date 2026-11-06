@@ -170,6 +170,11 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     itens: [
       { href: "/admin/configuracoes", label: "Campeonato e imagem" },
       {
+        href: "/admin/demonstracao",
+        label: "Demonstração",
+        permissao: "simulacao.alternar",
+      },
+      {
         href: "/admin/operacao/termo",
         label: "Termo de responsabilidade",
         permissao: "termo.editar",

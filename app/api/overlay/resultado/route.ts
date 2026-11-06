@@ -8,6 +8,10 @@ import {
   getResultadosPorBateria,
   nomeExibicaoPiloto,
 } from "@/lib/mock/data";
+import {
+  BATERIA_FINAL_DEMO,
+  sincronizarDemoCorrida,
+} from "@/lib/demo-corrida";
 import { lerPatrocinadores } from "@/lib/patrocinadores-store";
 import { encontrarPilotoPorId } from "@/lib/pilotos-store";
 
@@ -148,12 +152,17 @@ async function montarDemo() {
 }
 
 export async function GET(request: Request) {
+  sincronizarDemoCorrida();
   const { searchParams } = new URL(request.url);
   if (searchParams.get("demo") === "1") {
     return NextResponse.json(await montarDemo());
   }
 
+  // A final da corrida de demonstração, quando termina, é a que vai pra tela.
   const bateria =
+    baterias.find(
+      (b) => b.id === BATERIA_FINAL_DEMO && b.status === "encerrada",
+    ) ??
     baterias.find((b) => b.status === "encerrada" && b.numero === 2) ??
     baterias.find((b) => b.status === "encerrada");
 

@@ -1,4 +1,6 @@
+import { AutoAtualizar } from "@/components/cronometragem/auto-atualizar";
 import { Logo } from "@/components/ui/logo";
+import { sincronizarDemoCorrida } from "@/lib/demo-corrida";
 import {
   baterias,
   campeonato,
@@ -20,6 +22,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default function TvPage() {
+  sincronizarDemoCorrida();
   // Enquanto os dados forem locais, a bateria exibida é fixa. Com o Supabase
   // conectado, a página assina o Realtime da tabela `resultados` da bateria
   // com status "ao_vivo" (ou a próxima "grid"/"agendada", se nenhuma estiver rolando).
@@ -52,6 +55,7 @@ export default function TvPage() {
 
   return (
     <div className="flex min-h-screen flex-col p-10">
+      <AutoAtualizar intervaloMs={3000} />
       <header className="flex items-center justify-between border-b border-white/10 pb-6">
         <div>
           <Logo variant="dark" />

@@ -27,9 +27,11 @@ function lerArquivo(): boolean {
 
 function aplicar(ativa: boolean) {
   substituirDadosDeCorrida({
-    pilotos: ativa ? PILOTOS_SIMULADOS : [],
-    baterias: ativa ? BATERIAS_SIMULADAS : [],
-    resultados: ativa ? RESULTADOS_SIMULADOS : [],
+    // Cópias: a corrida de demonstração (lib/demo-corrida.ts) altera estes
+    // objetos no lugar e as constantes precisam continuar intactas.
+    pilotos: ativa ? structuredClone(PILOTOS_SIMULADOS) : [],
+    baterias: ativa ? structuredClone(BATERIAS_SIMULADAS) : [],
+    resultados: ativa ? structuredClone(RESULTADOS_SIMULADOS) : [],
     simulacaoAtiva: ativa,
   });
   for (const etapa of etapas) {

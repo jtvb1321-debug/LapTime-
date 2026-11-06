@@ -50,7 +50,11 @@ describe("menu do painel por perfil", () => {
       ],
       Equipamentos: EQUIPAMENTOS,
       Relatórios: ["Painel gerencial", "Relatórios do campeonato"],
-      Configurações: ["Campeonato e imagem", "Termo de responsabilidade"],
+      Configurações: [
+        "Campeonato e imagem",
+        "Demonstração",
+        "Termo de responsabilidade",
+      ],
     });
   });
 

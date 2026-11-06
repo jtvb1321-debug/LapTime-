@@ -59,3 +59,8 @@ coletor/dist/
 coletor/GridLap-Agente.log
 .tunel-local.cmd
 .servidor-local.cmd
+
+# senhas das contas de demonstracao (locais)
+credenciais-demo.txt
+cloudflared-demo.log
+link-demo.txt

@@ -8,6 +8,7 @@ import {
   getVoltaRapida,
   nomeExibicaoPiloto,
 } from "@/lib/mock/data";
+import { sincronizarDemoCorrida } from "@/lib/demo-corrida";
 import { lerPatrocinadores } from "@/lib/patrocinadores-store";
 import { encontrarPilotoPorId } from "@/lib/pilotos-store";
 
@@ -109,6 +110,7 @@ async function montarDemo() {
 }
 
 export async function GET(request: Request) {
+  sincronizarDemoCorrida();
   const { searchParams } = new URL(request.url);
   if (searchParams.get("demo") === "1") {
     return NextResponse.json(await montarDemo());

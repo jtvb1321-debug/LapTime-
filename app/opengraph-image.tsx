@@ -1,9 +1,18 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { ImageResponse } from "next/og";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OpengraphImage() {
+// Imagem de pré-visualização do link (WhatsApp, redes). Usa a logo oficial em
+// PNG (o gerador de imagem não aceita WebP).
+export default async function OpengraphImage() {
+  const logo = await readFile(
+    path.join(process.cwd(), "public", "logo-gridlap.png"),
+  );
+  const logoSrc = `data:image/png;base64,${logo.toString("base64")}`;
+
   return new ImageResponse(
     <div
       style={{
@@ -12,7 +21,7 @@ export default function OpengraphImage() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        background: "#12141b",
+        background: "#15181e",
         padding: 80,
       }}
     >
@@ -24,78 +33,32 @@ export default function OpengraphImage() {
               display: "flex",
               flex: 1,
               height: "100%",
-              background: i % 2 === 0 ? "rgba(255,255,255,0.8)" : "transparent",
+              background: i % 2 === 0 ? "#ff5500" : "transparent",
             }}
           />
         ))}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+      <div style={{ display: "flex", justifyContent: "center" }}>
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            width: 90,
-            height: 90,
-            borderRadius: 20,
-            overflow: "hidden",
+            background: "#ffffff",
+            borderRadius: 28,
+            padding: 20,
           }}
         >
-          <div style={{ display: "flex", width: "100%", height: "50%" }}>
-            <div
-              style={{
-                display: "flex",
-                width: "50%",
-                height: "100%",
-                background: "#7c3aed",
-              }}
-            />
-            <div
-              style={{
-                display: "flex",
-                width: "50%",
-                height: "100%",
-                background: "#ffffff",
-              }}
-            />
-          </div>
-          <div style={{ display: "flex", width: "100%", height: "50%" }}>
-            <div
-              style={{
-                display: "flex",
-                width: "50%",
-                height: "100%",
-                background: "#ffffff",
-              }}
-            />
-            <div
-              style={{
-                display: "flex",
-                width: "50%",
-                height: "100%",
-                background: "#7c3aed",
-              }}
-            />
-          </div>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            fontSize: 120,
-            fontWeight: 900,
-            fontStyle: "italic",
-          }}
-        >
-          <span style={{ color: "#ffffff" }}>GRID</span>
-          <span style={{ color: "#7c3aed", marginLeft: 24 }}>LAP</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logoSrc} width={600} height={200} alt="Grid Lap" />
         </div>
       </div>
 
       <div
         style={{
           display: "flex",
+          justifyContent: "center",
           fontSize: 34,
-          color: "rgba(255,255,255,0.5)",
+          color: "rgba(255,255,255,0.7)",
         }}
       >
         Classificação, calendário, resultados e live timing
