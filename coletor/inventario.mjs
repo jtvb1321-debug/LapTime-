@@ -8,7 +8,11 @@
 // unidade: assim o sistema reconhece o decoder mesmo em outra porta USB.
 import { execFile } from "node:child_process";
 import { readdirSync } from "node:fs";
-import { listarVizinhos } from "./descoberta.mjs";
+import {
+  MAC_DECODER_CALX,
+  acordarFaixasDoDecoder,
+  listarVizinhos,
+} from "./descoberta.mjs";
 
 const NOME_GENERICO =
   /composite|composto|root hub|generic usb hub|hub usb|usb hub/i;
@@ -106,7 +110,10 @@ export function inventarioDeRede(vizinhos) {
   return vizinhos.map((v) => ({
     chave: `rede:${v.mac}`,
     tipo: "rede",
-    nome: `Aparelho na rede (${v.ip})`,
+    nome:
+      v.mac === MAC_DECODER_CALX
+        ? `Decoder CalX Pro (${v.ip})`
+        : `Aparelho na rede (${v.ip})`,
     detalhe: v.ip,
   }));
 }
@@ -155,6 +162,14 @@ export async function coletarInventario() {
       // sem acesso ao /dev
     }
   }
-  itens.push(...inventarioDeRede(await listarVizinhos()));
+  let vizinhos = await listarVizinhos();
+  // Decoder de rede ainda não visto: acorda a faixa do cabo dele e olha de novo.
+  if (
+    !vizinhos.some((v) => v.mac === MAC_DECODER_CALX) &&
+    (await acordarFaixasDoDecoder())
+  ) {
+    vizinhos = await listarVizinhos();
+  }
+  itens.push(...inventarioDeRede(vizinhos));
   return itens;
 }

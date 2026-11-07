@@ -15,6 +15,12 @@ export const ONLINE_ATE_S = 30;
 const MAX_DISPOSITIVOS = 300;
 const ALFABETO_CODIGO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
+// Decoders que já conhecemos de fábrica, pela chave do aparelho (MAC na rede):
+// aparecem como "decoder reconhecido" sem o operador precisar confirmar.
+export const DECODERS_CONHECIDOS: Record<string, string> = {
+  "rede:34:ea:e7:57:78:41": "Decoder CalX Pro",
+};
+
 export type TipoDispositivo = "usb" | "serial" | "rede" | "outro";
 const TIPOS: TipoDispositivo[] = ["usb", "serial", "rede", "outro"];
 
@@ -239,7 +245,10 @@ export async function listarComputadores(): Promise<ComputadorDaPista[]> {
       "select chave, nome from dispositivo_decoder",
     ),
   ]);
-  const nomeDoPerfil = new Map(perfis.map((p) => [p.chave, p.nome]));
+  const nomeDoPerfil = new Map<string, string>([
+    ...Object.entries(DECODERS_CONHECIDOS),
+    ...perfis.map((p) => [p.chave, p.nome] as [string, string]),
+  ]);
   return linhas.map((l) => {
     const base = l.base ? new Set(l.base) : null;
     return {

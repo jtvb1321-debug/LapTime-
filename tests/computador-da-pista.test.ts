@@ -187,6 +187,20 @@ describe.skipIf(!temBancoDeTeste)(
       );
     });
 
+    it("reconhece sozinho o decoder CalX Pro pelo MAC, sem confirmação do operador", async () => {
+      const { codigo } = await criarPareamento(ator);
+      const { computadorId } = await parear(codigo, { nome: "PC pista" }, null);
+      const [decoder] = inventarioDeRede([
+        { ip: "192.168.137.50", mac: "34:ea:e7:57:78:41" },
+      ]);
+      expect(decoder.nome).toBe("Decoder CalX Pro (192.168.137.50)");
+      await registrarInventario(computadorId, [decoder], null);
+      const pc = (await listarComputadores()).find(
+        (c) => c.id === computadorId,
+      )!;
+      expect(pc.dispositivos[0].decoder?.nome).toBe("Decoder CalX Pro");
+    });
+
     it("detecta o dispositivo novo depois da base e passa a reconhecer o decoder confirmado", async () => {
       const { codigo } = await criarPareamento(ator);
       const { token, computadorId } = await parear(

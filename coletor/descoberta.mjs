@@ -185,3 +185,44 @@ export function escutarUdp(portas, ms) {
     }, ms);
   });
 }
+
+// Decoder CalX Pro conhecido de fábrica (MAC da unidade da pista).
+export const MAC_DECODER_CALX = "34:ea:e7:57:78:41";
+// Faixa do cabo de rede dedicado ao decoder (compartilhamento de conexão do
+// Windows para o adaptador). Outras faixas: variável GRIDLAP_FAIXAS_DECODER
+// (ex.: "192.168.50.0/24,192.168.60.0/24").
+const FAIXA_PADRAO_DECODER = "192.168.137.0/24";
+let ultimaBusca = 0;
+
+// "Acorda" a faixa do decoder para ele aparecer na tabela ARP: uma tentativa
+// de conexão rápida por IP (porta 9), sem enviar dados. Só em placas que
+// têm IP nessa faixa, e no máximo a cada 30 segundos.
+export async function acordarFaixasDoDecoder() {
+  if (Date.now() - ultimaBusca < 30_000) return false;
+  ultimaBusca = Date.now();
+  const faixas = (process.env.GRIDLAP_FAIXAS_DECODER || FAIXA_PADRAO_DECODER)
+    .split(",")
+    .map((f) => f.trim())
+    .filter(Boolean);
+  const locais = interfacesLocais().map((i) => i.ip);
+  let acordou = false;
+  for (const faixa of faixas) {
+    let hosts;
+    try {
+      hosts = hostsDaFaixa(faixa);
+    } catch {
+      continue;
+    }
+    const base = faixa.split("/")[0].split(".").slice(0, 3).join(".");
+    if (!locais.some((ip) => ip.startsWith(`${base}.`))) continue;
+    await varrer({
+      hosts: hosts.filter((h) => !locais.includes(h)),
+      portas: [9],
+      concorrencia: 128,
+      timeoutMs: 600,
+      escutaMs: 0,
+    });
+    acordou = true;
+  }
+  return acordou;
+}
