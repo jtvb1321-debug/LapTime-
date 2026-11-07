@@ -11,7 +11,8 @@
     "coletor": "node coletor/coletor.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "agente:exe": "node coletor/construir-exe.mjs"
+    "agente:exe": "node coletor/construir-exe.mjs",
+    "pacote:local": "node deploy/local-windows/montar-pacote.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

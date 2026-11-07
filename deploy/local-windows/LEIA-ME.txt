@@ -1,0 +1,46 @@
+GRID LAP - VERSAO LOCAL (Windows 10/11, 64 bits)
+================================================
+
+Roda inteiro neste computador, sem internet e sem instalar nada.
+
+COMO USAR
+1. Extraia a pasta GridLap inteira para um lugar fixo (ex.: C:\GridLap).
+   Nao rode de dentro do zip.
+2. De duplo clique em "Grid Lap.exe". Na primeira vez leva ate 1 minuto
+   (cria o banco). O navegador abre sozinho em http://localhost:3001.
+3. A senha do administrador esta em dados\CREDENCIAIS.txt
+   (usuario admin@gridlap.com.br).
+4. Para desligar: "Parar Grid Lap.exe".
+
+O Windows pode avisar "arquivo desconhecido" na primeira vez (o programa nao
+e assinado): Mais informacoes > Executar assim mesmo.
+
+NAO abra como Administrador: o banco (PostgreSQL) se recusa a rodar assim.
+
+DECODER
+O agente que reconhece o decoder ja vem ligado. Com o sistema aberto, va em
+Cronometragem > Equipamentos > Computador da pista:
+  - com o decoder DESCONECTADO, clique "Registrar o que esta ligado agora";
+  - conecte o decoder: ele aparece em destaque; clique "Este e o decoder".
+
+DECODER CalX Pro POR REDE (ferramenta agente\calx.mjs)
+Feche o LapTime antes. Na pasta do Grid Lap:
+  node\node.exe agente\calx.mjs achar                 acha o IP pelo MAC
+  node\node.exe agente\calx.mjs portas IP             lista as portas TCP abertas
+  node\node.exe agente\calx.mjs ouvir --tcp 5000 --udp 5000 --segundos 120
+  node\node.exe agente\calx.mjs gravar IP PORTA --segundos 120
+As gravacoes ficam em agente\capturas (envie-as para estudo do protocolo).
+
+Ler as passagens depende de um driver para o CalX Pro, que ainda nao existe.
+
+ONDE FICAM OS DADOS
+Tudo em dados\ (banco, senhas, registros em dados\logs). Para guardar um
+backup, copie a pasta dados com o Grid Lap DESLIGADO.
+
+AJUSTES (dados\config.json, feche e abra o Grid Lap depois)
+  porta        endereco do sistema (padrao 3001)
+  portaBanco   porta do banco embutido (padrao 55433)
+  rede         true = outros aparelhos da rede tambem abrem o sistema
+
+PROBLEMAS
+Veja dados\logs\iniciar.log, app.log, postgres.log e agente.log.

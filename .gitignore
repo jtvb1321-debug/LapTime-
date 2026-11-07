@@ -64,3 +64,6 @@ coletor/GridLap-Agente.log
 credenciais-demo.txt
 cloudflared-demo.log
 link-demo.txt
+
+# pacote local para Windows (gerado)
+dist-local/
