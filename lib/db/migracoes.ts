@@ -736,4 +736,16 @@ export const MIGRACOES: Migracao[] = [
       );
     `,
   },
+  {
+    // Decoder cadastrado sozinho pelo computador da pista (plug-and-play) e
+    // informações extras que o driver relata (ex.: ruído da antena do CalX Pro).
+    id: "0015_decoder_automatico",
+    sql: `
+      alter table decoder
+        add column computador_id text references coletor_computador (id),
+        add column info jsonb;
+      create unique index decoder_computador_driver
+        on decoder (computador_id, driver) where computador_id is not null;
+    `,
+  },
 ];

@@ -11,6 +11,7 @@ import { readdirSync } from "node:fs";
 import {
   MAC_DECODER_CALX,
   acordarFaixasDoDecoder,
+  interfacesLocais,
   listarVizinhos,
 } from "./descoberta.mjs";
 
@@ -118,6 +119,22 @@ export function inventarioDeRede(vizinhos) {
   }));
 }
 
+// Adaptador USB-Ethernet do decoder (TP-Link, VID_2357&PID_0601) ligado mas
+// sem rede: o Windows deu um IP 169.254.x (sem DHCP) e nada chega ao decoder.
+export const CHAVE_ADAPTADOR_DECODER = "usb:VID_2357&PID_0601";
+export function alertaPlacaDoDecoder(itens, placas) {
+  if (!itens.some((i) => i.chave === CHAVE_ADAPTADOR_DECODER)) return null;
+  if (placas.some((p) => p.ip.startsWith("192.168.137."))) return null;
+  if (!placas.some((p) => p.ip.startsWith("169.254."))) return null;
+  return {
+    chave: "alerta:placa-decoder-sem-rede",
+    tipo: "outro",
+    nome: "A placa do decoder está sem rede",
+    detalhe:
+      "Rode 'Preparar rede do decoder' (uma vez, como administrador) e reconecte o adaptador.",
+  };
+}
+
 function executar(comando, args, timeout = 20000) {
   return new Promise((resolve) => {
     execFile(
@@ -171,5 +188,7 @@ export async function coletarInventario() {
     vizinhos = await listarVizinhos();
   }
   itens.push(...inventarioDeRede(vizinhos));
+  const alerta = alertaPlacaDoDecoder(itens, interfacesLocais());
+  if (alerta) itens.push(alerta);
   return itens;
 }

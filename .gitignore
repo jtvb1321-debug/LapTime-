@@ -54,6 +54,10 @@ gridlap-local*.log
 coletor/config.json
 coletor/fila.jsonl*
 coletor/capturas/
+coletor/passagens/
+coletor/fila-calx.jsonl*
+coletor/decoder-calx.json
+coletor/calx-host.txt
 coletor/agente.json
 coletor/dist/
 coletor/GridLap-Agente.log
@@ -67,3 +71,7 @@ link-demo.txt
 
 # pacote local para Windows (gerado)
 dist-local/
+agente-out.log
+agente-err.log
+sim-out.log
+sim-err.log

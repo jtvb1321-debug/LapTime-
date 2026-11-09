@@ -16,6 +16,7 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
+import { criarExecutorCalx } from "./calx-automatico.mjs";
 import { coletarInventario } from "./inventario.mjs";
 
 const TAMANHO_MAXIMO_DO_LOG = 1024 * 1024;
@@ -153,14 +154,24 @@ export function criarAgente(pasta) {
     const intervaloMs = Math.max(3, Number(intervaloSegundos) || 8) * 1000;
     log(`Agente "${config.nome}" vigiando. Sistema: ${config.servidor}`);
 
+    // CalX Pro: detecta, cadastra no sistema e lê as passagens sozinho.
+    const calx = criarExecutorCalx({
+      pasta,
+      servidor: config.servidor,
+      token: config.token,
+      log,
+    });
+
     let anteriores = null;
     let semConexao = false;
     let parar = false;
     process.on("SIGINT", () => {
       parar = true;
+      void calx.parar();
     });
 
     while (!parar) {
+      void calx.ciclo();
       try {
         const lista = await coletarInventario();
         const chaves = new Set(lista.map((d) => d.chave));

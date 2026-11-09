@@ -48,15 +48,56 @@ O arquivo `coletor/agente.json` guarda o token do computador: não compartilhe.
 aparelho é. **Ler as passagens** continua dependendo de conhecer o protocolo do
 CalX Pro (veja abaixo); enquanto não houver driver, a detecção não traz tempos.
 
+## CalX Pro: plug-and-play
+
+O driver `drivers/calx-pro.mjs` lê o CalX Pro (conversor serial→rede Eport-EP20
+dentro dele) pela porta TCP **5100**, em texto, **só leitura** (nunca envia nada
+ao decoder). O agente liga tudo sozinho, sem token e sem `config.json`:
+
+1. **Detecta** o decoder: pelo MAC conhecido (`34:ea:e7:57:78:41`) ou, na faixa do
+   cabo (`192.168.137.0/24`; outras em `GRIDLAP_FAIXAS_DECODER`), qualquer
+   aparelho novo que mande `xCALXPRO` na porta 5100 em até ~6 s.
+2. **Cadastra** o decoder no sistema (`POST /api/cronometragem/coletor/decoder`,
+   autenticado pelo token do computador): cria o decoder uma vez por computador e
+   devolve a chave dele (guardada em `decoder-calx.json`).
+3. **Lê** e envia as passagens pela fila segura (`fila-calx.jsonl`); o IP pode
+   mudar a cada DHCP (o MAC é procurado de novo a cada conexão). Cópias locais:
+   `capturas/calx-*.log` (bytes brutos) e `passagens/AAAA-MM-DD.csv`.
+
+Protocolo (captura real, `tests/fixtures/calx-pro-captura-real.log`): cada
+mensagem = SOH + campos separados por TAB + CR LF, último campo `xCALXPRO`;
+passagem `@ <decoder> <seq> <transponder> <tempo_s> <leituras> <força> <estado>`
+e sinal de vida `$ <decoder> <seq> <ruído> 0` a cada ~4,7 s. O `tempo_s` é o
+tempo desde que o decoder ligou: a hora real usa a menor diferença
+"chegada − tempo"; se o tempo volta, o decoder reiniciou e a referência
+recomeça. O mesmo transponder em menos de 3 s é leitura dupla e é ignorado; o
+servidor ainda recebe `eventoExterno = calx-<decoder>-<seq>-<tempo>`.
+
+**Ligação física:** decoder → cabo de rede → adaptador USB-Ethernet (TP-Link,
+`VID_2357&PID_0601`) → PC. O decoder pede IP por DHCP; sem DHCP ele cai em
+`169.254.x` e o Windows não alcança. Rode **uma vez, como administrador**,
+`Preparar rede do decoder.cmd` (ativa o Compartilhamento de Internet Wi-Fi →
+placa do decoder; a placa fica `192.168.137.1`). Se o agente vir o adaptador com
+IP `169.254.x`, a tela Equipamentos mostra o aviso. (O Grid Lap em si **não**
+roda como administrador: o PostgreSQL recusa.)
+
+**Teste sem o aparelho:** `Testar Decoder (simulador).cmd` sobe um decoder de
+mentira (`calx.mjs simular`) em `127.0.0.1:5100` e aponta o agente para ele
+(`calx-host.txt`, ou a variável `GRIDLAP_CALX_HOST`). Em até 1 minuto a tela
+mostra o "Decoder CalX Pro" conectado (marcado SIMULADO) com as passagens.
+
+**Diagnóstico** (`node agente\calx.mjs ...`): `achar`, `portas IP`, `gravar IP
+PORTA`, `ouvir`, `tudo`, `configurar` (modo manual com token: cria
+`config.json`; com ele o agente deixa a leitura para o `coletor.mjs`) e
+`simular`.
+
 ## O que existe e o que NÃO existe
 
 - Existe: o caminho completo (fila segura, envio, banco, tela), a busca de
   aparelhos na rede, um driver genérico de **texto por TCP**, um **simulador** e
   um **gravador** para estudar protocolos.
-- **Não existe driver do CalX Pro / LapTime.** O protocolo desse decoder não é
-  conhecido e o fornecedor não o documenta; nada aqui foi inventado para ele.
-  Para suportá-lo é preciso primeiro descobrir como ele fala (veja
-  "Estudar um decoder novo").
+- **CalX Pro:** existe driver (`drivers/calx-pro.mjs`), baseado em captura real
+  do aparelho (veja a seção acima). Outras marcas continuam sem driver.
 - "Qualquer decoder" vale para os que (a) se conectam por rede/TCP e (b) têm um
   driver. O driver genérico cobre os que mandam **uma linha de texto por
   passagem**; os demais pedem um driver próprio (um arquivo pequeno).

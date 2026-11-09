@@ -21,7 +21,7 @@
 
 import { execFile } from "node:child_process";
 import dgram from "node:dgram";
-import { createWriteStream, mkdirSync } from "node:fs";
+import { createWriteStream, mkdirSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -72,18 +72,19 @@ function abrirArquivo(rotulo) {
   };
 }
 
-function testarPorta(host, porta, timeoutMs, escutaMs) {
+function testarPorta(host, porta, timeoutMs, escutaMs, origem) {
   return new Promise((resolve) => {
     const pedacos = [];
     let abriu = false;
     let fim = false;
-    const s = net.connect({ host, port: porta });
+    let motivo = "sem resposta (tempo esgotado)";
+    const s = net.connect({ host, port: porta, ...(origem ? { localAddress: origem } : {}) });
     const terminar = () => {
       if (fim) return;
       fim = true;
       clearTimeout(t);
       s.destroy();
-      resolve({ porta, abriu, bytes: Buffer.concat(pedacos) });
+      resolve({ porta, abriu, motivo, bytes: Buffer.concat(pedacos) });
     };
     let t = setTimeout(terminar, timeoutMs);
     s.on("connect", () => {
@@ -92,9 +93,30 @@ function testarPorta(host, porta, timeoutMs, escutaMs) {
       t = setTimeout(terminar, escutaMs);
     });
     s.on("data", (d) => pedacos.push(d));
-    s.on("error", terminar);
+    s.on("error", (e) => {
+      motivo = e.code === "ECONNREFUSED" ? "recusada (porta fechada)" : (e.code ?? String(e.message).replace(/\s\S+:\d+$/, ""));
+      terminar();
+    });
     s.on("close", terminar);
   });
+}
+
+// Com várias placas em 169.254.x (Ethernet, Bluetooth, Wi-Fi Direct…), o
+// Windows pode mandar a conexão pela placa errada. Escolhe a placa da mesma
+// faixa do decoder, preferindo as com cabo ("Ethernet").
+function origemPara(host, opcoes) {
+  if (opcoes.origem && opcoes.origem !== "auto") return String(opcoes.origem);
+  const prefixo = host.split(".").slice(0, 2).join(".") + ".";
+  const candidatas = [];
+  for (const [nome, ends] of Object.entries(os.networkInterfaces())) {
+    for (const e of ends ?? []) {
+      if (e.family === "IPv4" && !e.internal && e.address.startsWith(prefixo)) candidatas.push({ nome, ip: e.address });
+    }
+  }
+  if (candidatas.length <= 1) return candidatas[0]?.ip;
+  const boa = candidatas.find((c) => /^ethernet/i.test(c.nome) && !/bluetooth/i.test(c.nome)) ??
+    candidatas.find((c) => !/bluetooth|local\*/i.test(c.nome)) ?? candidatas[0];
+  return boa.ip;
 }
 
 const MAC_DECODER = "34:ea:e7:57:78:41";
@@ -143,8 +165,8 @@ async function achar(opcoes) {
   }
   if (achado) {
     console.log(`\nDECODER ENCONTRADO: ${achado.ip}  (MAC ${mac})`);
-    console.log(`Próximo passo: node\\node.exe agente\\calx.mjs portas ${achado.ip}`);
-    return;
+    if (!opcoes.silencioso) console.log(`Próximo passo: node\\node.exe agente\\calx.mjs portas ${achado.ip}`);
+    return achado.ip;
   }
   console.log(`\nDecoder (MAC ${mac}) não encontrado.`);
   if (!placas.some((p) => p.ip.startsWith("192.168.137."))) {
@@ -153,14 +175,170 @@ async function achar(opcoes) {
   console.log("Confira: cabo do decoder no adaptador TP-Link, compartilhamento ativo, e desligue/ligue o decoder; espere 30s e rode de novo.");
 }
 
+// Faz tudo de uma vez: acha o decoder, testa as portas e grava por N segundos
+// (nas portas abertas, ou esperando o decoder conectar/mandar UDP). No fim
+// escreve um resumo em agente/capturas/relatorio-*.txt.
+async function tudo(opcoes) {
+  const segundos = Number(opcoes.segundos ?? 180);
+  const resumo = [];
+  const anotar = (m) => {
+    resumo.push(m);
+    log(m);
+  };
+  const ip = opcoes.ip ?? (await achar({ ...opcoes, silencioso: true }));
+  if (!ip) {
+    anotar("decoder não encontrado; nada gravado.");
+    return salvarResumo(resumo);
+  }
+  anotar(`decoder: ${ip}`);
+  const abertas = await portas(ip, { ...opcoes, silencioso: true });
+  if (abertas === null) {
+    anotar("sem caminho de rede até o decoder (ENETUNREACH).");
+    return salvarResumo(resumo);
+  }
+  anotar(`portas abertas: ${abertas.map((a) => a.porta).join(", ") || "nenhuma"}`);
+  for (const a of abertas) if (a.bytes.length) anotar(`  ${a.porta} mandou sozinha: ${previa(a.bytes)}`);
+
+  const gravador = abrirArquivo(`tudo-${ip}`);
+  const fechar = [];
+  let pacotes = 0;
+  const escrever = (origem, d) => {
+    pacotes++;
+    gravador.escrever(origem, d);
+  };
+  for (const a of abertas) {
+    const s = net.connect({ host: ip, port: a.porta });
+    s.on("connect", () => log(`gravando ${ip}:${a.porta}`));
+    s.on("data", (d) => escrever(`${ip}:${a.porta}`, d));
+    s.on("error", (e) => log(`${a.porta}: ${e.code ?? e.message}`));
+    s.on("close", () => log(`${a.porta}: conexão encerrada pelo decoder`));
+    fechar.push(() => s.destroy());
+  }
+  const portasEscuta = [2000, 3000, 4000, 4001, 5000, 5100, 5403, 6000, 7000, 8000, 9000, 10000, 10001, 30718];
+  for (const p of portasEscuta) {
+    const srv = net.createServer((c) => {
+      const origem = `${c.remoteAddress}:${c.remotePort}->tcp${p}`;
+      anotar(`o decoder CONECTOU no PC: ${origem}`);
+      c.on("data", (d) => escrever(origem, d));
+      c.on("error", () => {});
+    });
+    srv.on("error", () => {});
+    srv.listen(p, "0.0.0.0");
+    fechar.push(() => srv.close());
+    const u = dgram.createSocket({ type: "udp4", reuseAddr: true });
+    u.on("message", (d, info) => escrever(`${info.address}:${info.port}->udp${p}`, d));
+    u.on("error", () => {});
+    u.bind(p);
+    fechar.push(() => u.close());
+  }
+  console.log(`\n>>> AGORA: passe transponders na antena (anote número e hora de cada um). Gravando por ${segundos}s...\n`);
+  const progresso = setInterval(() => log(`${pacotes} pacote(s) recebido(s) até agora`), 15_000);
+  await new Promise((r) => setTimeout(r, segundos * 1000));
+  clearInterval(progresso);
+  fechar.forEach((f) => f());
+  await gravador.fechar();
+  anotar(`pacotes recebidos: ${pacotes}`);
+  anotar(`arquivo: ${gravador.arquivo}`);
+  return salvarResumo(resumo);
+}
+
+function salvarResumo(linhas) {
+  mkdirSync(CAPTURAS, { recursive: true });
+  const arquivo = path.join(CAPTURAS, `relatorio-${new Date().toISOString().replace(/[:.]/g, "-")}.txt`);
+  writeFileSync(arquivo, linhas.join("\n") + "\n");
+  console.log(`\nResumo salvo em ${arquivo}. Avise no chat que terminou.`);
+}
+
+// Simulador do CalX Pro: um servidor TCP que fala exatamente o protocolo
+// visto na captura real (porta 5100). Serve para testar coletor → sistema →
+// tela sem o decoder. Inclui sinal de vida a cada ~4,7 s e, de vez em
+// quando, uma leitura dupla (como o 727855 na captura).
+async function simular(opcoes) {
+  const porta = Number(opcoes.porta ?? 5100);
+  const acel = Number(opcoes.aceleracao ?? 10);
+  const transponders = String(opcoes.transponders ?? "1837094,727855,396149,2888472,1246485").split(",").map((t) => t.trim()).filter(Boolean);
+  const inicio = Date.now() - 89_000;
+  const tempoDecoder = () => ((Date.now() - inicio) / 1000).toFixed(3);
+  let seq = 0;
+  const clientes = new Set();
+  const enviar = (campos) => {
+    const linha = Buffer.from("\x01" + [...campos, "xCALXPRO"].join("\t") + "\r\n", "latin1");
+    for (const c of clientes) c.write(linha);
+  };
+  const srv = net.createServer((c) => {
+    clientes.add(c);
+    log(`cliente conectou: ${c.remoteAddress}:${c.remotePort}`);
+    c.on("close", () => clientes.delete(c));
+    c.on("error", () => {});
+  });
+  srv.on("error", (e) => {
+    console.error(`Erro: não consegui abrir a porta ${porta}: ${e.message}`);
+    process.exit(1);
+  });
+  srv.listen(porta, "0.0.0.0", () => log(`simulador CalX Pro na porta ${porta} (voltas ~${Math.round(57 / acel)} s). Ctrl+C para parar.`));
+  setInterval(() => enviar(["$", "03", String(++seq), String(28 + Math.floor(Math.random() * 5)), "0"]), 4700);
+  transponders.forEach((t, i) => {
+    const volta = (56_500 + i * 800 + Math.random() * 600) / acel;
+    const passar = () => {
+      const tempo = tempoDecoder();
+      const forca = String(196 + Math.floor(Math.random() * 30));
+      enviar(["@", "03", String(++seq), t, tempo, String(15 + Math.floor(Math.random() * 30)), forca, "2"]);
+      log(`passagem simulada: ${t} (${tempo} s)`);
+      if (Math.random() < 0.15) {
+        setTimeout(() => {
+          enviar(["@", "03", String(++seq), t, tempoDecoder(), "9", forca, "2"]);
+          log(`leitura dupla simulada: ${t}`);
+        }, 150);
+      }
+      setTimeout(passar, volta * (0.98 + Math.random() * 0.04));
+    };
+    setTimeout(passar, 1500 + i * 700);
+  });
+  await new Promise(() => {});
+}
+
+// Escreve agente/config.json para o coletor usar o CalX Pro.
+function configurar(opcoes) {
+  const token = String(opcoes.token ?? "").trim();
+  if (!/^gl_dec_\S+$/.test(token)) {
+    throw new Error('informe o token do decoder: calx.mjs configurar --token gl_dec_... (Cronometragem > Equipamentos > cadastrar decoder).');
+  }
+  const config = {
+    servidor: String(opcoes.servidor ?? "http://127.0.0.1:3001"),
+    token,
+    driver: "calx-pro",
+    modo: "cliente",
+    porta: Number(opcoes.porta ?? 5100),
+  };
+  if (opcoes.host) config.host = String(opcoes.host);
+  else config.mac = String(opcoes.mac ?? MAC_DECODER);
+  const arquivo = path.join(path.dirname(fileURLToPath(import.meta.url)), String(opcoes.arquivo ?? "config.json"));
+  writeFileSync(arquivo, JSON.stringify(config, null, 2) + "\n");
+  console.log(`config salva em ${arquivo}:`);
+  console.log(JSON.stringify({ ...config, token: token.slice(0, 10) + "…" }, null, 2));
+}
+
 async function portas(host, opcoes) {
   validarIp(host);
   const de = Number(opcoes.de ?? 1);
   const ate = Number(opcoes.ate ?? 65535);
   const paralelo = Number(opcoes.paralelo ?? 300);
   const timeout = Number(opcoes.timeout ?? 800);
+  const origem = origemPara(host, opcoes);
+  if (origem) log(`saindo pela placa com IP ${origem}`);
+  const teste = await testarPorta(host, 80, 2000, 500, origem);
+  log(`teste inicial (porta 80): ${teste.abriu ? "aberta" : teste.motivo}`);
+  if (teste.motivo === "ENETUNREACH" || teste.motivo === "EHOSTUNREACH") {
+    console.log(
+      "O Windows diz que não há caminho de rede até o decoder (nem chegou a tentar).\n" +
+        "Isso acontece com IP 169.254.x quando há várias placas nessa faixa. Solução: dê IP ao decoder pelo\n" +
+        "compartilhamento da Wi-Fi para a placa \"Ethernet\" (fica 192.168.137.x) e rode \"calx.mjs achar\" de novo.",
+    );
+    return null;
+  }
   log(`testando portas TCP ${de}-${ate} em ${host} (só conecta e escuta; não envia dados)…`);
   const abertas = [];
+  const motivos = new Map();
   let proxima = de;
   let feitas = 0;
   const total = ate - de + 1;
@@ -168,8 +346,9 @@ async function portas(host, opcoes) {
   const trabalhador = async () => {
     while (proxima <= ate) {
       const p = proxima++;
-      const r = await testarPorta(host, p, timeout, 2500);
+      const r = await testarPorta(host, p, timeout, 2500, origem);
       feitas++;
+      if (!r.abriu) motivos.set(r.motivo, (motivos.get(r.motivo) ?? 0) + 1);
       if (r.abriu) {
         abertas.push(r);
         log(`ABERTA ${host}:${p}  ${r.bytes.length ? previa(r.bytes) : "(não mandou nada sozinha)"}`);
@@ -179,6 +358,8 @@ async function portas(host, opcoes) {
   await Promise.all(Array.from({ length: paralelo }, trabalhador));
   clearInterval(progresso);
   console.log(`\nTerminado: ${abertas.length} porta(s) aberta(s): ${abertas.map((a) => a.porta).sort((a, b) => a - b).join(", ") || "nenhuma"}`);
+  for (const [m, n] of motivos) console.log(`  ${n} porta(s): ${m}`);
+  if (opcoes.silencioso) return abertas;
   if (!abertas.length) {
     console.log("Nenhuma porta aberta: o decoder provavelmente é quem conecta no PC. Tente: calx.mjs ouvir --tcp ... --udp ...");
   }
@@ -235,12 +416,15 @@ async function gravar(host, porta, opcoes) {
 
 const { opcoes, pos } = argumentos(process.argv.slice(2));
 try {
-  if (pos[0] === "achar") await achar(opcoes);
+  if (pos[0] === "simular") await simular(opcoes);
+  else if (pos[0] === "configurar") configurar(opcoes);
+  else if (pos[0] === "tudo") await tudo(opcoes);
+  else if (pos[0] === "achar") await achar(opcoes);
   else if (pos[0] === "portas") await portas(pos[1], opcoes);
   else if (pos[0] === "ouvir") await ouvir(opcoes);
   else if (pos[0] === "gravar") await gravar(pos[1], pos[2], opcoes);
   else {
-    console.log("Uso:\n  calx.mjs achar\n  calx.mjs portas IP\n  calx.mjs ouvir --tcp 5000 --udp 5000 [--segundos 120]\n  calx.mjs gravar IP PORTA [--segundos 120]");
+    console.log("Uso:\n  calx.mjs simular [--porta 5100] [--aceleracao 10]\n  calx.mjs configurar --token gl_dec_... [--host 127.0.0.1]\n  calx.mjs tudo [--segundos 180]\n  calx.mjs achar\n  calx.mjs portas IP\n  calx.mjs ouvir --tcp 5000 --udp 5000 [--segundos 120]\n  calx.mjs gravar IP PORTA [--segundos 120]");
   }
 } catch (e) {
   console.error(`Erro: ${e.message}`);

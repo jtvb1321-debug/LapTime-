@@ -23,7 +23,18 @@ Cronometragem > Equipamentos > Computador da pista:
   - com o decoder DESCONECTADO, clique "Registrar o que esta ligado agora";
   - conecte o decoder: ele aparece em destaque; clique "Este e o decoder".
 
-DECODER CalX Pro POR REDE (ferramenta agente\calx.mjs)
+DECODER CalX Pro (PLUG-AND-PLAY)
+Ligacao: decoder > cabo de rede > adaptador USB-Ethernet (TP-Link) > este PC.
+1. Uma vez, com o adaptador conectado: "Preparar rede do decoder.cmd"
+   (pede permissao de administrador; ativa o compartilhamento da Wi-Fi para a
+   placa do decoder, que fica 192.168.137.1).
+2. Abra o Grid Lap e ligue o decoder. Em ate 1 minuto aparece "Decoder CalX Pro"
+   conectado em Cronometragem > Equipamentos, e as passagens entram sozinhas
+   (sem token, sem configuracao).
+Teste sem o aparelho: "Testar Decoder (simulador).cmd" (mantenha o Grid Lap aberto).
+Copias locais: agente\passagens\AAAA-MM-DD.csv e agente\capturas.
+
+DECODER CalX Pro: DIAGNOSTICO (ferramenta agente\calx.mjs)
 Feche o LapTime antes. Na pasta do Grid Lap:
   node\node.exe agente\calx.mjs achar                 acha o IP pelo MAC
   node\node.exe agente\calx.mjs portas IP             lista as portas TCP abertas
@@ -31,7 +42,7 @@ Feche o LapTime antes. Na pasta do Grid Lap:
   node\node.exe agente\calx.mjs gravar IP PORTA --segundos 120
 As gravacoes ficam em agente\capturas (envie-as para estudo do protocolo).
 
-Ler as passagens depende de um driver para o CalX Pro, que ainda nao existe.
+
 
 ONDE FICAM OS DADOS
 Tudo em dados\ (banco, senhas, registros em dados\logs). Para guardar um

@@ -101,6 +101,10 @@ cpSync(coletor, path.join(pacote, "agente"), {
     return !(
       rel === "dist" ||
       rel === "capturas" ||
+      rel === "passagens" ||
+      rel === "calx-host.txt" ||
+      rel === "decoder-calx.json" ||
+      rel.startsWith("fila-calx.jsonl") ||
       rel === "agente.json" ||
       rel === "config.json" ||
       rel.startsWith("fila.jsonl") ||
@@ -114,6 +118,8 @@ cpSync(path.join(aqui, "launcher"), path.join(pacote, "launcher"), {
   recursive: true,
 });
 cpSync(path.join(aqui, "LEIA-ME.txt"), path.join(pacote, "LEIA-ME.txt"));
+// Atalhos da raiz do pacote (teste com simulador, preparar a rede do decoder).
+cpSync(path.join(aqui, "raiz"), pacote, { recursive: true });
 mkdirSync(path.join(pacote, "dados"));
 
 const csc = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe";

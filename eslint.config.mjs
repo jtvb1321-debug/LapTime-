@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Executável do agente gerado por npm run agente:exe (não é código-fonte).
     "coletor/dist/**",
+    // Pacote local do Windows gerado por npm run pacote:local.
+    "dist-local/**",
   ]),
 ]);
 

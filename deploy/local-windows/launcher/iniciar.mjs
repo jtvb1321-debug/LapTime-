@@ -309,6 +309,19 @@ try {
       });
       log(`Agente do decoder ligado (pid ${pidAgente}).`);
     }
+    // Modo manual (opcional): se existir agente\config.json, o coletor lê o
+    // decoder com o token colado à mão. O normal é o agente cadastrar e ler o
+    // CalX Pro sozinho (coletor/calx-automatico.mjs); com config.json o agente
+    // deixa a leitura para o coletor.
+    if (existsSync(path.join(pastaAgente, "config.json"))) {
+      const pidColetor = lancar(
+        "coletor",
+        NODE,
+        ["coletor.mjs", "rodar", "--config", "config.json"],
+        { cwd: pastaAgente },
+      );
+      log(`Coletor do decoder ligado (pid ${pidColetor}).`);
+    }
   }
 } finally {
   await banco.end();

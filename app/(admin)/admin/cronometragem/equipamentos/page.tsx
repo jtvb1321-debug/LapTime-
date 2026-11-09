@@ -39,6 +39,7 @@ export const metadata: Metadata = { title: "Equipamentos — decoders" };
 export const dynamic = "force-dynamic";
 
 const DRIVERS = [
+  { id: "calx-pro", nome: "CalX Pro (normalmente é cadastrado sozinho)" },
   { id: "linhas-tcp", nome: "Texto por TCP (genérico)" },
   { id: "gravador", nome: "Gravador (só para estudar um protocolo)" },
   { id: "simulador", nome: "Simulador (testes, sem equipamento)" },
@@ -179,7 +180,16 @@ export default async function EquipamentosPage() {
             {d.driver}
             {d.modelo ? ` · ${d.modelo}` : ""}
             {d.endereco ? ` · ${d.endereco}` : ""}
+            {d.automatico ? " · cadastrado sozinho" : ""}
           </p>
+          {d.info?.ruido !== undefined ? (
+            <p className="text-ink-3 text-xs">
+              Ruído da antena: {d.info.ruido}
+              {d.info.ultimaPassagem
+                ? ` · última leitura: transponder ${d.info.ultimaPassagem}`
+                : ""}
+            </p>
+          ) : null}
         </div>
       ),
     },

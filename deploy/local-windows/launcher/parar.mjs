@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DADOS = path.join(RAIZ, "dados");
 
-for (const nome of ["agente", "app"]) {
+for (const nome of ["coletor", "agente", "app"]) {
   const arquivo = path.join(DADOS, `${nome}.pid`);
   if (!existsSync(arquivo)) continue;
   const pid = readFileSync(arquivo, "utf8").trim();

@@ -44,6 +44,7 @@ export function criarEnvio({
   ];
   let conectado = false;
   let ultimoErro = null;
+  let infoDoDriver = null;
   let enviando = false;
   let ultimoEnvio = 0;
   let espera = 0;
@@ -107,7 +108,11 @@ export function criarEnvio({
       },
       body: JSON.stringify({
         passagens: lote,
-        estado: { conectado, erro: ultimoErro ?? undefined },
+        estado: {
+          conectado,
+          erro: ultimoErro ?? undefined,
+          info: infoDoDriver ?? undefined,
+        },
         eventos: eventosDoLote,
       }),
       signal: AbortSignal.timeout(10_000),
@@ -185,6 +190,10 @@ export function criarEnvio({
     erro(mensagem) {
       ultimoErro = String(mensagem).slice(0, 300);
       registrarEvento("erro", ultimoErro);
+    },
+    // Informações extras do driver (ex.: ruído da antena), mostradas na tela.
+    info(valor) {
+      infoDoDriver = valor;
     },
     pendentes: () => pendentes.length,
     async parar() {

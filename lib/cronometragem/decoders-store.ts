@@ -36,6 +36,9 @@ export interface Decoder {
   ultimoErro?: string;
   ultimoErroEm: Date | null;
   passagens24h: number;
+  info?: InfoDoDriver;
+  // Cadastrado sozinho pelo computador da pista.
+  automatico: boolean;
 }
 
 export interface PassagemEntrada {
@@ -53,9 +56,13 @@ export interface Rejeicao {
   bruto: string | null;
 }
 
+// Informações extras que o driver relata (ex.: CalX Pro: ruído da antena).
+export type InfoDoDriver = Record<string, string | number>;
+
 export interface EstadoDoDriver {
   conectado: boolean;
   erro?: string;
+  info?: InfoDoDriver;
 }
 
 export type TipoEventoDriver =
@@ -173,6 +180,22 @@ const TIPOS_EVENTO: TipoEventoDriver[] = [
 ];
 
 // Estado e eventos de conexão informados pelo coletor (opcionais no lote).
+function validarInfo(bruto: unknown): InfoDoDriver | undefined {
+  if (!bruto || typeof bruto !== "object" || Array.isArray(bruto)) {
+    return undefined;
+  }
+  const info: InfoDoDriver = {};
+  for (const [chave, valor] of Object.entries(bruto).slice(0, 12)) {
+    if (!/^[a-zA-Z0-9_]{1,30}$/.test(chave)) continue;
+    if (typeof valor === "number" && Number.isFinite(valor)) {
+      info[chave] = valor;
+    } else if (typeof valor === "string") {
+      info[chave] = valor.slice(0, 80);
+    }
+  }
+  return Object.keys(info).length ? info : undefined;
+}
+
 export function validarDiagnostico(corpo: {
   estado?: unknown;
   eventos?: unknown;
@@ -184,6 +207,7 @@ export function validarDiagnostico(corpo: {
       estado = {
         conectado: e.conectado,
         erro: typeof e.erro === "string" ? e.erro.slice(0, 300) : undefined,
+        info: validarInfo(e.info),
       };
     }
   }
@@ -402,7 +426,8 @@ export async function registrarPassagens(
               end,
               conectado = coalesce($4::boolean, conectado),
               ultimo_erro = coalesce($5, ultimo_erro),
-              ultimo_erro_em = case when $5::text is null then ultimo_erro_em else now() end
+              ultimo_erro_em = case when $5::text is null then ultimo_erro_em else now() end,
+              info = coalesce($6::jsonb, info)
         where id = $1`,
       [
         decoderId,
@@ -410,6 +435,7 @@ export async function registrarPassagens(
         opcoes.ip ?? null,
         estado ? estado.conectado : null,
         estado?.erro ?? null,
+        estado?.info ? JSON.stringify(estado.info) : null,
       ],
     );
     return { gravadas, repetidas: passagens.length - gravadas };
@@ -457,10 +483,13 @@ export async function listarDecoders(): Promise<Decoder[]> {
     ultimo_erro: string | null;
     ultimo_erro_em: Date | null;
     passagens_24h: number;
+    info: InfoDoDriver | null;
+    computador_id: string | null;
   }>(
     `select d.id, d.nome, d.driver, d.modelo, d.endereco, d.ativo, d.conectado,
             d.conectado_desde, d.ultimo_sinal, d.ultima_passagem, d.ultimo_erro,
-            d.ultimo_erro_em, coalesce(c.n, 0)::int as passagens_24h
+            d.ultimo_erro_em, coalesce(c.n, 0)::int as passagens_24h,
+            d.info, d.computador_id
        from decoder d
        left join (
          select decoder_id, count(*) as n from passagem
@@ -485,7 +514,9 @@ export async function listarDecoders(): Promise<Decoder[]> {
       id: l.id,
       nome: l.nome,
       driver: l.driver,
-      simulado: l.driver === "simulador",
+      // Endereço 127.x = o simulador do CalX Pro rodando neste computador.
+      simulado:
+        l.driver === "simulador" || (l.endereco?.startsWith("127.") ?? false),
       modelo: l.modelo ?? undefined,
       endereco: l.endereco ?? undefined,
       ativo: l.ativo,
@@ -496,6 +527,8 @@ export async function listarDecoders(): Promise<Decoder[]> {
       ultimoErro: l.ultimo_erro ?? undefined,
       ultimoErroEm: l.ultimo_erro_em,
       passagens24h: l.passagens_24h,
+      info: l.info ?? undefined,
+      automatico: l.computador_id !== null,
     };
   });
 }
@@ -572,4 +605,63 @@ export async function ultimasPassagens(
     relogio: l.relogio,
     forca: l.forca,
   }));
+}
+
+export const DRIVERS_AUTOMATICOS = ["calx-pro"];
+
+// Plug-and-play: o computador da pista (autenticado pelo token dele) pede o
+// cadastro do decoder que detectou. Cria o decoder UMA vez por computador e
+// driver; nas chamadas seguintes só gera um token novo (o token antigo deixa
+// de valer: quem pede é o único coletor desse decoder).
+export async function provisionarDecoderDoComputador(
+  computadorId: string,
+  dados: { driver: string; nome?: string; endereco?: string; modelo?: string },
+  ip: string | null,
+): Promise<{ id: string; token: string; criado: boolean }> {
+  const driver = dados.driver.trim().toLowerCase();
+  if (!DRIVERS_AUTOMATICOS.includes(driver)) {
+    throw new ErroNegocio("Esse tipo de decoder não é cadastrado sozinho.");
+  }
+  const endereco = dados.endereco?.trim().slice(0, 200) || null;
+  const modelo = dados.modelo?.trim().slice(0, 80) || null;
+  const nome = dados.nome?.trim().slice(0, 80) || "Decoder CalX Pro";
+  const token = novoToken();
+  return transacao(async (cliente) => {
+    const pc = await cliente.query<{ pareado_por: string | null }>(
+      "select pareado_por from coletor_computador where id = $1 and revogado_em is null for update",
+      [computadorId],
+    );
+    if (!pc.rows[0]) throw new ErroNegocio("Computador não encontrado.");
+    const existente = await cliente.query<{ id: string }>(
+      "select id from decoder where computador_id = $1 and driver = $2",
+      [computadorId, driver],
+    );
+    if (existente.rows[0]) {
+      await cliente.query(
+        `update decoder set token_hash = $2, ativo = true,
+                endereco = coalesce($3, endereco)
+          where id = $1`,
+        [existente.rows[0].id, hashDoToken(token), endereco],
+      );
+      return { id: existente.rows[0].id, token, criado: false };
+    }
+    const id = `decoder-${randomUUID()}`;
+    await cliente.query(
+      `insert into decoder (id, nome, driver, endereco, modelo, token_hash, computador_id)
+       values ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, nome, driver, endereco, modelo, hashDoToken(token), computadorId],
+    );
+    await registrarAuditoria(
+      {
+        usuarioId: pc.rows[0].pareado_por,
+        ip,
+        acao: "decoder.criar_automatico",
+        entidade: "decoder",
+        entidadeId: id,
+        depois: { nome, driver, endereco, modelo, computadorId },
+      },
+      cliente,
+    );
+    return { id, token, criado: true };
+  });
 }

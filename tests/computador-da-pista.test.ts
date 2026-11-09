@@ -19,6 +19,10 @@ import {
   revogarComputador,
   validarInventario,
 } from "@/lib/cronometragem/computadores-store";
+import {
+  autenticarDecoder,
+  provisionarDecoderDoComputador,
+} from "@/lib/cronometragem/decoders-store";
 import { consultar } from "@/lib/db/conexao";
 import { migrar } from "@/lib/db/migrar";
 import { criarEsquemaDeTeste, temBancoDeTeste } from "./helpers/banco";
@@ -199,6 +203,38 @@ describe.skipIf(!temBancoDeTeste)(
         (c) => c.id === computadorId,
       )!;
       expect(pc.dispositivos[0].decoder?.nome).toBe("Decoder CalX Pro");
+    });
+
+    it("cadastra o CalX Pro sozinho, uma única vez, e renova a chave nas próximas", async () => {
+      const { codigo } = await criarPareamento(ator);
+      const { computadorId } = await parear(codigo, { nome: "PC pista" }, null);
+      const a = await provisionarDecoderDoComputador(
+        computadorId,
+        { driver: "calx-pro", endereco: "192.168.137.50" },
+        null,
+      );
+      expect(a.criado).toBe(true);
+      expect(await autenticarDecoder(a.token)).toMatchObject({ id: a.id });
+
+      const b = await provisionarDecoderDoComputador(
+        computadorId,
+        { driver: "calx-pro", endereco: "192.168.137.60" },
+        null,
+      );
+      expect(b.criado).toBe(false);
+      expect(b.id).toBe(a.id);
+      expect(b.token).not.toBe(a.token);
+      expect(await autenticarDecoder(a.token)).toBeNull(); // chave antiga não vale
+      expect(await autenticarDecoder(b.token)).toMatchObject({ id: a.id });
+
+      const [{ n }] = await consultar<{ n: number }>(
+        "select count(*)::int as n from decoder where computador_id = $1",
+        [computadorId],
+      );
+      expect(n).toBe(1);
+      await expect(
+        provisionarDecoderDoComputador(computadorId, { driver: "outro" }, null),
+      ).rejects.toThrow(/não é cadastrado sozinho/);
     });
 
     it("detecta o dispositivo novo depois da base e passa a reconhecer o decoder confirmado", async () => {

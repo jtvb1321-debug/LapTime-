@@ -91,12 +91,15 @@ function Computador({
   pc: ComputadorDaPista;
   podeAdministrar: boolean;
 }) {
-  const reconhecidos = pc.dispositivos.filter((d) => d.decoder);
-  const novos = pc.dispositivos.filter((d) => d.novo && !d.decoder);
-  const fisicos = pc.dispositivos.filter(
+  // Avisos do agente (ex.: placa do decoder sem rede) não são aparelhos.
+  const alertas = pc.dispositivos.filter((d) => d.chave.startsWith("alerta:"));
+  const aparelhos = pc.dispositivos.filter((d) => !d.chave.startsWith("alerta:"));
+  const reconhecidos = aparelhos.filter((d) => d.decoder);
+  const novos = aparelhos.filter((d) => d.novo && !d.decoder);
+  const fisicos = aparelhos.filter(
     (d) => d.tipo !== "rede" && !d.novo && !d.decoder,
   );
-  const rede = pc.dispositivos.filter(
+  const rede = aparelhos.filter(
     (d) => d.tipo === "rede" && !d.novo && !d.decoder,
   );
 
@@ -118,6 +121,18 @@ function Computador({
         )}
       </CardHeader>
       <CardBody className="flex flex-col gap-5">
+        {alertas.map((a) => (
+          <div
+            key={a.chave}
+            role="alert"
+            className="border-border rounded-md border px-4 py-3"
+          >
+            <p className="text-ink text-sm font-medium">{a.nome}</p>
+            {a.detalhe ? (
+              <p className="text-ink-2 mt-1 text-sm">{a.detalhe}</p>
+            ) : null}
+          </div>
+        ))}
         {reconhecidos.length > 0 ? (
           <div className="flex flex-col gap-2">
             {reconhecidos.map((d) => (
