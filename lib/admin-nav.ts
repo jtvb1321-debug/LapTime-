@@ -152,6 +152,11 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     itens: [
       { href: "/admin/configuracoes", label: "Campeonato e imagem" },
       {
+        href: "/admin/configuracoes/decoder",
+        label: "Decoder",
+        permissao: "cronometragem.ver",
+      },
+      {
         href: "/admin/demonstracao",
         label: "Demonstração",
         permissao: "simulacao.alternar",
