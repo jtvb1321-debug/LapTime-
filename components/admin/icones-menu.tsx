@@ -140,6 +140,7 @@ const ICONE_POR_HREF: Record<string, string> = {
   "/admin/configuracoes": "engrenagem",
   "/admin/demonstracao": "jogar",
   "/admin/operacao/termo": "documento",
+  "/admin/usuarios": "pessoas",
 };
 
 export function IconeDoMenu({

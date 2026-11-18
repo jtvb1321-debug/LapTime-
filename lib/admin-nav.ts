@@ -161,6 +161,11 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         label: "Termo de responsabilidade",
         permissao: "termo.editar",
       },
+      {
+        href: "/admin/usuarios",
+        label: "Usuários",
+        permissao: "usuario.administrar",
+      },
     ],
   },
 ];
