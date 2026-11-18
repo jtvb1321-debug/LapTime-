@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { AlternarEfeitos } from "@/components/ui/efeitos";
 
 export function SiteFooter() {
   return (
@@ -12,6 +13,7 @@ export function SiteFooter() {
           unoptimized
           className="h-auto w-full max-w-[200px]"
         />
+        <AlternarEfeitos className="mt-2" />
       </div>
     </footer>
   );

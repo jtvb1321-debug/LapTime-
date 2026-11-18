@@ -214,17 +214,16 @@ body {
   }
 }
 /* Movimento reduzido: apresentação estática, sem animar nada. */
-@media (prefers-reduced-motion: reduce) {
-  .gl-entrada {
-    transition: none;
-  }
-  .gl-entrada__texto {
-    animation: none;
-    opacity: 1;
-  }
-  .gl-entrada__giro {
-    animation: none;
-  }
+/* Só quando a pessoa escolhe "Reduzir efeitos" (botão no rodapé). */
+:root[data-efeitos="reduzidos"] .gl-entrada {
+  transition: none;
+}
+:root[data-efeitos="reduzidos"] .gl-entrada__texto {
+  animation: none;
+  opacity: 1;
+}
+:root[data-efeitos="reduzidos"] .gl-entrada__giro {
+  animation: none;
 }
 
 /*
@@ -245,7 +244,11 @@ body {
       rgba(43, 110, 245, 0.4),
       transparent 72%
     ),
-    radial-gradient(34% 28% at 100% 0%, rgba(76, 201, 255, 0.28), transparent 72%),
+    radial-gradient(
+      34% 28% at 100% 0%,
+      rgba(76, 201, 255, 0.28),
+      transparent 72%
+    ),
     linear-gradient(135deg, #0c1630, #09112a 55%, #050a14);
   background-color: var(--color-graphite);
 }
@@ -272,15 +275,14 @@ body {
 }
 
 /* Movimento reduzido: sem transições de cor/posição nem giro de "aguarde". */
-@media (prefers-reduced-motion: reduce) {
-  .transition-colors,
-  .transition-transform,
-  .transition-all,
-  .animate-spin,
-  .animate-pulse {
-    transition: none;
-    animation: none;
-  }
+/* Só quando a pessoa escolhe "Reduzir efeitos" (botão no rodapé). */
+:root[data-efeitos="reduzidos"] .transition-colors,
+:root[data-efeitos="reduzidos"] .transition-transform,
+:root[data-efeitos="reduzidos"] .transition-all,
+:root[data-efeitos="reduzidos"] .animate-spin,
+:root[data-efeitos="reduzidos"] .animate-pulse {
+  transition: none;
+  animation: none;
 }
 
 /* ---- Pit wall: tela de preparação da bateria (components/cronometragem/preparacao-da-bateria.tsx) ----
@@ -427,11 +429,10 @@ body {
     background-position: -200% 0;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .gl-giro,
-  .gl-esqueleto {
-    animation: none;
-  }
+/* Só quando a pessoa escolhe "Reduzir efeitos" (botão no rodapé). */
+:root[data-efeitos="reduzidos"] .gl-giro,
+:root[data-efeitos="reduzidos"] .gl-esqueleto {
+  animation: none;
 }
 
 /* =====================================================================================
@@ -573,10 +574,9 @@ body {
     opacity: 0.8;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .gl-fundo * {
-    animation: none !important;
-  }
+/* Só quando a pessoa escolhe "Reduzir efeitos" (botão no rodapé). */
+:root[data-efeitos="reduzidos"] .gl-fundo * {
+  animation: none !important;
 }
 @media print {
   .gl-fundo {
@@ -621,11 +621,10 @@ body {
 .gl-pista[data-pausado] .gl-pista-luz {
   animation-play-state: paused;
 }
-@media (prefers-reduced-motion: reduce) {
-  .gl-pista-luz {
-    animation: none;
-    stroke-dashoffset: 0.7;
-  }
+/* Só quando a pessoa escolhe "Reduzir efeitos" (botão no rodapé). */
+:root[data-efeitos="reduzidos"] .gl-pista-luz {
+  animation: none;
+  stroke-dashoffset: 0.7;
 }
 
 /* Logo que se completa (carregamento estilo F1): fantasma apagado + logo cheia revelada da
@@ -673,14 +672,13 @@ body {
     opacity: 0;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .gl-carga__cheio {
-    animation: none;
-    clip-path: none;
-  }
-  .gl-carga__luz {
-    display: none;
-  }
+/* Só quando a pessoa escolhe "Reduzir efeitos" (botão no rodapé). */
+:root[data-efeitos="reduzidos"] .gl-carga__cheio {
+  animation: none;
+  clip-path: none;
+}
+:root[data-efeitos="reduzidos"] .gl-carga__luz {
+  display: none;
 }
 
 /* Fonte de automobilismo (Rajdhani) nos rótulos de menu: site, topbar, abas e navegação do painel. */
@@ -756,10 +754,9 @@ body {
     transform: scale(1.03);
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .gl-abertura {
-    display: none;
-  }
+/* Só quando a pessoa escolhe "Reduzir efeitos" (botão no rodapé). */
+:root[data-efeitos="reduzidos"] .gl-abertura {
+  display: none;
 }
 @media print {
   .gl-abertura {
@@ -798,8 +795,7 @@ body {
     }
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .gl-subir {
-    animation: none;
-  }
+/* Só quando a pessoa escolhe "Reduzir efeitos" (botão no rodapé). */
+:root[data-efeitos="reduzidos"] .gl-subir {
+  animation: none;
 }

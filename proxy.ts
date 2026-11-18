@@ -19,8 +19,7 @@ export function proxy(request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' blob: data:",
     "font-src 'self' data:",
-    // staticimgly.com: modelo de recorte de fundo (baixado só no cadastro com foto de macacão).
-    "connect-src 'self' https://staticimgly.com",
+    "connect-src 'self'",
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
     "object-src 'none'",

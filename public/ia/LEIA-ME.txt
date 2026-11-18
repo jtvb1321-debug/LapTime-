@@ -1,0 +1,7 @@
+Arquivos do recorte automatico de foto (remocao de fundo no navegador).
+
+- modnet.onnx: modelo MODNet convertido para ONNX por Xenova (https://huggingface.co/Xenova/modnet).
+  Licenca: Apache-2.0 (MODNet, ZHKKKe/MODNet).
+- ort/: motor onnxruntime-web 1.21.0 (WebAssembly). Licenca: MIT (Microsoft).
+
+Se trocar um destes arquivos, mude tambem o NOME: o navegador guarda /ia por 1 ano (cache imutavel).

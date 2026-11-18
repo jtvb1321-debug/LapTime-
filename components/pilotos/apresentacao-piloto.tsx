@@ -1,5 +1,6 @@
 "use client";
 
+import { efeitosReduzidos } from "@/components/ui/efeitos";
 import { useEffect, useRef, useState } from "react";
 import {
   ALTURA,
@@ -67,9 +68,7 @@ export function ApresentacaoPiloto({
     const ctx = canvas?.getContext("2d");
     if (!pronto || !canvas || !ctx || !recursos.current) return;
     const r = recursos.current;
-    const reduzido = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const reduzido = efeitosReduzidos();
     if (parado || reduzido) {
       let quadro = 0;
       const desenhar = () => {

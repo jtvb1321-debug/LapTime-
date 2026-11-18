@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Rajdhani, Roboto_Mono } from "next/font/google";
 import "./globals.css";
+import { AplicadorDeEfeitos } from "@/components/ui/efeitos";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -41,6 +42,7 @@ export default function RootLayout({
       className={`${inter.variable} ${robotoMono.variable} ${rajdhani.variable}`}
     >
       <body className="bg-bg text-ink min-h-screen antialiased">
+        <AplicadorDeEfeitos />
         {children}
       </body>
     </html>

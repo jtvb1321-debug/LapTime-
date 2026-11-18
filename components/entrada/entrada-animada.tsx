@@ -1,5 +1,6 @@
 "use client";
 
+import { efeitosReduzidos } from "@/components/ui/efeitos";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LogoCarregando } from "@/components/ui/logo-carregando";
@@ -16,9 +17,7 @@ export function EntradaAnimada() {
 
   useEffect(() => {
     let ativo = true;
-    const reduzido = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const reduzido = efeitosReduzidos();
     const aviso = setTimeout(() => setDemora(true), 2200);
     void confirmarEntrada({ minimoMs: reduzido ? 700 : 1500 }).then((r) => {
       if (!ativo) return;

@@ -23,7 +23,20 @@ const nextConfig: NextConfig = {
   // O cadastro envia o recorte da foto do piloto (webp, até ~700 KB) junto com os campos.
   experimental: { serverActions: { bodySizeLimit: "3mb" } },
   async headers() {
-    return [{ source: "/:path*", headers: CABECALHOS_DE_SEGURANCA }];
+    return [
+      { source: "/:path*", headers: CABECALHOS_DE_SEGURANCA },
+      // Modelo e motor do recorte de foto: arquivos pesados que só mudam se o NOME mudar; o
+      // navegador pode guardá-los por muito tempo (a segunda foto já não baixa nada).
+      {
+        source: "/ia/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
   },
 };
 

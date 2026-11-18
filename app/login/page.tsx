@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
+import { AlternarEfeitos } from "@/components/ui/efeitos";
 import { FundoFumaca } from "@/components/ui/fundo-fumaca";
 import { contasDemoPermitidas } from "@/lib/auth-core";
 
@@ -35,6 +36,9 @@ export default async function LoginPage({
           redirectTo={redirectTo ?? "/"}
           mostrarContasDemo={contasDemoPermitidas()}
         />
+      </div>
+      <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center">
+        <AlternarEfeitos />
       </div>
     </main>
   );

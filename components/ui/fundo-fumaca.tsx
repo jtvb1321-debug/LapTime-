@@ -1,5 +1,6 @@
 "use client";
 
+import { efeitosReduzidos } from "@/components/ui/efeitos";
 import { useEffect, useRef } from "react";
 
 const VERTEX = `
@@ -122,9 +123,7 @@ export function FundoFumaca({
       desenhar();
       quadro = requestAnimationFrame(laco);
     };
-    const parado = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const parado = efeitosReduzidos();
     if (parado) desenhar();
     else laco();
 
