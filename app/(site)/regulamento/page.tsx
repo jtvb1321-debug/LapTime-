@@ -6,7 +6,7 @@ const SECOES = [
   {
     titulo: "1. Categorias",
     corpo:
-      "O campeonato é disputado nas categorias Rookie, Intermediária e Master, definidas por experiência prévia e idade mínima do piloto.",
+      "O campeonato é disputado nas categorias Feminina, Rookie, Intermediária, Master e Sênior, definidas por experiência prévia e idade mínima do piloto.",
   },
   {
     titulo: "2. Balizamento e pole position",

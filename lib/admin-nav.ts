@@ -185,6 +185,7 @@ const SECOES_DO_PILOTO = ["Estrutura", "Classificação"];
 
 const PREFIXOS_DO_PILOTO = [
   "/admin/pista-e-baterias",
+  "/admin/meu-perfil",
   ...(ADMIN_NAV.find((g) => g.titulo === "Campeonato")
     ?.itens.filter((i) => i.secao && SECOES_DO_PILOTO.includes(i.secao))
     .map((i) => i.href) ?? []),
@@ -202,6 +203,11 @@ const MENU_DO_PILOTO: AdminNavGroup[] = [
     titulo: "Pista",
     fixo: true,
     itens: [{ href: "/admin/pista-e-baterias", label: "Pista e baterias" }],
+  },
+  {
+    titulo: "Meu perfil",
+    fixo: true,
+    itens: [{ href: "/admin/meu-perfil", label: "Meu perfil" }],
   },
   {
     titulo: "Campeonato",

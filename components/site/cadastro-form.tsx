@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { AssinaturaPiloto } from "@/components/overlay/assinatura-piloto";
 import { ApresentacaoPiloto } from "@/components/pilotos/apresentacao-piloto";
 import { FotoMacacao } from "@/components/site/foto-macacao";
+import {
+  reduzirImagem,
+  TAMANHO_MAXIMO_BYTES,
+} from "@/lib/foto-reduzida";
 import { ESTADOS_BRASIL } from "@/lib/estados-brasil";
 import { useMockStore } from "@/lib/use-mock-store";
 import {
@@ -15,41 +19,8 @@ import {
 import type { Categoria } from "@/lib/types";
 
 const ESTADO_INICIAL: CadastroState = {};
-// Arquivo de entrada: até 8 MB; a foto é reduzida antes de enviar (o servidor
-// de ações aceita no máximo 1 MB por envio).
-const TAMANHO_MAXIMO_BYTES = 8 * 1024 * 1024;
-const LADO_MAXIMO_FOTO = 512;
 const COR_NUMERO_PADRAO = "#8b5cf6";
 const COR_ASSINATURA_PADRAO = "#f2f5f7";
-
-// Lê a imagem e a reduz (lado maior de 512 px, JPEG): a foto do piloto é só um
-// avatar, e assim o envio fica pequeno em qualquer celular.
-async function reduzirImagem(arquivo: File): Promise<string> {
-  const url = URL.createObjectURL(arquivo);
-  try {
-    const imagem = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error("Imagem inválida."));
-      img.src = url;
-    });
-    const escala = Math.min(
-      1,
-      LADO_MAXIMO_FOTO / Math.max(imagem.naturalWidth, imagem.naturalHeight),
-    );
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(imagem.naturalWidth * escala));
-    canvas.height = Math.max(1, Math.round(imagem.naturalHeight * escala));
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Sem suporte a imagem.");
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(imagem, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", 0.82);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
 
 export function CadastroForm({
   categoriasIniciais,
@@ -177,16 +148,15 @@ export function CadastroForm({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="idade" className="text-ink text-sm font-medium">
-            Idade
+          <label htmlFor="nascimento" className="text-ink text-sm font-medium">
+            Data de nascimento
           </label>
           <input
-            id="idade"
-            name="idade"
-            type="number"
-            inputMode="numeric"
+            id="nascimento"
+            name="nascimento"
+            type="date"
             required
-            min={1}
+            min="1900-01-01"
             className="campo"
           />
         </div>

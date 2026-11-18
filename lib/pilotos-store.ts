@@ -1,6 +1,8 @@
 import type { PoolClient } from "pg";
-import { consultar } from "@/lib/db/conexao";
+import { consultar, transacao } from "@/lib/db/conexao";
 import { pilotos as pilotosSimulados } from "@/lib/mock/data";
+import { idadeDe } from "@/lib/cadastro-validacao";
+import { hojeEmSaoPaulo } from "@/lib/operacao/tempo";
 import type { Piloto } from "@/lib/types";
 
 // Pilotos reais (cadastrados em /cadastro) moram no Postgres, visíveis pra
@@ -20,6 +22,7 @@ interface LinhaPiloto {
   foto_embutida: boolean;
   foto_tam: number | null;
   idade: number | null;
+  nascimento: string | null;
   peso_kg: string | null;
   cor_numero: string | null;
   cor_assinatura: string | null;
@@ -44,7 +47,11 @@ function pilotoDeLinha(l: LinhaPiloto): Piloto {
     avatarUrl: l.foto_embutida
       ? `/api/pilotos/${l.id}/foto?v=${l.foto_tam ?? 0}`
       : (l.avatar_url ?? undefined),
-    idade: l.idade ?? undefined,
+    nascimento: l.nascimento ?? undefined,
+    // A idade vem da data de nascimento; cadastros antigos (sem data) mantêm a idade gravada.
+    idade: l.nascimento
+      ? idadeDe(l.nascimento, hojeEmSaoPaulo())
+      : (l.idade ?? undefined),
     pesoKg: l.peso_kg === null ? undefined : Number(l.peso_kg),
     corNumero: l.cor_numero ?? undefined,
     corAssinatura: l.cor_assinatura ?? undefined,
@@ -60,7 +67,8 @@ export async function lerPilotosReais(): Promise<Piloto[]> {
     `select id, nome, apelido, slug, numero, categoria_id, cidade, uf,
             case when avatar_url like 'data:%' then null else avatar_url end as avatar_url,
             coalesce(avatar_url like 'data:%', false) as foto_embutida,
-            length(avatar_url) as foto_tam, idade, peso_kg, cor_numero, cor_assinatura, vitorias, podios, pontos,
+            length(avatar_url) as foto_tam, idade,
+            to_char(nascimento, 'YYYY-MM-DD') as nascimento, peso_kg, cor_numero, cor_assinatura, vitorias, podios, pontos,
             posicao_campeonato
        from piloto order by criado_em, id`,
   );
@@ -88,9 +96,9 @@ export async function inserirPiloto(
 ): Promise<void> {
   await cliente.query(
     `insert into piloto (id, nome, apelido, slug, numero, categoria_id, cidade, uf,
-                         avatar_url, idade, peso_kg, cor_numero, cor_assinatura,
+                         avatar_url, idade, nascimento, peso_kg, cor_numero, cor_assinatura,
                          vitorias, podios, pontos, posicao_campeonato)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
     [
       piloto.id,
       piloto.nome,
@@ -102,6 +110,7 @@ export async function inserirPiloto(
       piloto.uf ?? null,
       piloto.avatarUrl ?? null,
       piloto.idade ?? null,
+      piloto.nascimento ?? null,
       piloto.pesoKg ?? null,
       piloto.corNumero ?? null,
       piloto.corAssinatura ?? null,
@@ -125,4 +134,73 @@ export async function encontrarPilotoPorId(
 ): Promise<Piloto | undefined> {
   const pilotos = await lerPilotos();
   return pilotos.find((p) => p.id === id);
+}
+
+export class ErroDePerfil extends Error {}
+
+export interface DadosDoPerfil {
+  nome: string;
+  apelido: string;
+  numero: number;
+  nascimento: string;
+  // undefined = mantém a foto atual; string vazia = remove.
+  avatarUrl?: string;
+}
+
+// Piloto edita o próprio perfil. O número é único: a conferência prévia dá a mensagem amigável e o
+// índice único do banco barra a corrida de dois pilotos escolhendo o mesmo número ao mesmo tempo.
+export async function atualizarPerfilDoPiloto(
+  pilotoId: string,
+  dados: DadosDoPerfil,
+  idade: number,
+): Promise<void> {
+  const [outro] = await consultar<{ id: string }>(
+    "select id from piloto where numero = $1 and id <> $2 limit 1",
+    [dados.numero, pilotoId],
+  );
+  if (outro) {
+    throw new ErroDePerfil(`O número ${dados.numero} já está em uso por outro piloto.`);
+  }
+  try {
+    await transacao(async (cliente) => {
+      const r = await cliente.query(
+        `update piloto
+            set nome = $2, apelido = $3, numero = $4, nascimento = $5, idade = $6,
+                avatar_url = case when $7::boolean then $8 else avatar_url end
+          where id = $1`,
+        [
+          pilotoId,
+          dados.nome,
+          dados.apelido,
+          dados.numero,
+          dados.nascimento,
+          idade,
+          dados.avatarUrl !== undefined,
+          dados.avatarUrl ? dados.avatarUrl : null,
+        ],
+      );
+      if (r.rowCount === 0) throw new ErroDePerfil("Piloto não encontrado.");
+      await cliente.query(
+        `update perfil
+            set nome = $2,
+                avatar_url = case when $3::boolean then $4 else avatar_url end
+          where piloto_id = $1`,
+        [
+          pilotoId,
+          dados.apelido,
+          dados.avatarUrl !== undefined,
+          dados.avatarUrl ? dados.avatarUrl : null,
+        ],
+      );
+    });
+  } catch (erro) {
+    if (
+      typeof erro === "object" &&
+      erro !== null &&
+      (erro as { code?: string }).code === "23505"
+    ) {
+      throw new ErroDePerfil(`O número ${dados.numero} já está em uso por outro piloto.`);
+    }
+    throw erro;
+  }
 }

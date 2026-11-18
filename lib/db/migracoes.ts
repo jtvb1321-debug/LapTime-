@@ -778,4 +778,32 @@ export const MIGRACOES: Migracao[] = [
       );
     `,
   },
+  {
+    // Perfil editável do piloto: data de nascimento (a idade deriva dela) e número único. Estrutural:
+    // em produção o SQL é aplicado à mão (deploy/discloud/piloto-nascimento-numero.sql, o mesmo texto).
+    id: "0020_piloto_nascimento_e_numero_unico",
+    estrutural: true,
+    sql: `
+      -- Data de nascimento do piloto (a idade passa a ser calculada a partir dela).
+      alter table piloto add column if not exists nascimento date;
+
+      -- Número do piloto não pode repetir. Se já houver repetidos, o mais antigo
+      -- fica com o número e os demais recebem números novos acima do maior.
+      with repetidos as (
+        select id,
+               row_number() over (partition by numero order by criado_em, id) as ordem
+          from piloto
+      ), a_trocar as (
+        select id, row_number() over (order by id) as pos
+          from repetidos where ordem > 1
+      )
+      update piloto p
+         set numero = (select coalesce(max(numero), 0) from piloto) + a.pos
+        from a_trocar a
+       where p.id = a.id;
+
+      create unique index if not exists piloto_numero_unico on piloto (numero);
+      drop index if exists piloto_numero;
+    `,
+  },
 ];

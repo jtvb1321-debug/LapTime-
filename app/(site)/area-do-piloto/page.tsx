@@ -93,6 +93,17 @@ export default async function AreaDoPilotoPage() {
             </CardBody>
           </Card>
 
+          <Link href="/admin/meu-perfil">
+            <Card>
+              <CardBody>
+                <p className="text-ink font-medium">Editar meu perfil</p>
+                <p className="text-ink-3 text-xs">
+                  Nome, número, data de nascimento e foto
+                </p>
+              </CardBody>
+            </Card>
+          </Link>
+
           <section className="flex flex-col gap-3">
             <h2 className="text-ink text-base font-semibold">Acompanhar</h2>
             <div className="grid gap-3 sm:grid-cols-3">

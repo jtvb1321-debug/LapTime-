@@ -68,7 +68,12 @@ export interface Serie {
   ordem: number;
 }
 
-export type NivelCategoria = "feminina" | "intermediaria" | "rookie" | "master";
+export type NivelCategoria =
+  | "feminina"
+  | "intermediaria"
+  | "rookie"
+  | "master"
+  | "senior";
 
 export interface Categoria {
   id: string;
@@ -91,6 +96,8 @@ export interface Piloto {
   cidade?: string;
   uf?: string;
   avatarUrl?: string;
+  // Data de nascimento (AAAA-MM-DD); a idade mostrada é calculada dela.
+  nascimento?: string;
   idade?: number;
   pesoKg?: number;
   // Assinatura pessoal (número + nome com cores escolhidas pelo piloto),

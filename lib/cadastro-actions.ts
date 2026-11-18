@@ -14,10 +14,12 @@ import { emailJaCadastrado } from "@/lib/perfis-store";
 import {
   corValida,
   erroDoCadastro,
+  idadeDe,
   limparTexto,
 } from "@/lib/cadastro-validacao";
 import { hashSenha } from "@/lib/senha";
 import { ESTADOS_BRASIL } from "@/lib/estados-brasil";
+import { hojeEmSaoPaulo } from "@/lib/operacao/tempo";
 import type { Perfil, Piloto } from "@/lib/types";
 
 export type CadastroState = { erro?: string };
@@ -48,7 +50,7 @@ export async function cadastroPilotoMockAction(
   const apelido = limparTexto(formData.get("apelido"));
   const email = limparTexto(formData.get("email"));
   const senha = String(formData.get("senha") ?? "");
-  const idade = Number(formData.get("idade"));
+  const nascimento = limparTexto(formData.get("nascimento"));
   const categoriaId = String(formData.get("categoriaId") ?? "");
   const pesoKg = Number(formData.get("pesoKg"));
   const uf = String(formData.get("uf") ?? "");
@@ -67,15 +69,11 @@ export async function cadastroPilotoMockAction(
   if (!nome || !apelido || !email || !senha || !categoriaId || !uf) {
     return { erro: "Preencha todos os campos obrigatórios." };
   }
-  const erro = erroDoCadastro({
-    nome,
-    apelido,
-    email,
-    senha,
-    idade,
-    pesoKg,
-    fotoUrl,
-  });
+  const hoje = hojeEmSaoPaulo();
+  const erro = erroDoCadastro(
+    { nome, apelido, email, senha, nascimento, pesoKg, fotoUrl },
+    hoje,
+  );
   if (erro) return { erro };
   if (fotoCorpo && !fotoCorpoValida(fotoCorpo)) {
     return { erro: "Foto de macacão inválida. Envie a foto de novo." };
@@ -108,7 +106,8 @@ export async function cadastroPilotoMockAction(
     numero,
     categoriaId,
     uf,
-    idade,
+    nascimento,
+    idade: idadeDe(nascimento, hoje),
     pesoKg,
     avatarUrl: fotoUrl || undefined,
     corNumero,
@@ -136,6 +135,11 @@ export async function cadastroPilotoMockAction(
     // Dois cadastros simultâneos com o mesmo e-mail/slug: o banco barra o
     // segundo e nada fica pela metade.
     if (ehViolacaoDeUnicidade(erro)) {
+      // O índice único do número barra dois pilotos escolhendo o mesmo número ao mesmo tempo.
+      const restricao = (erro as { constraint?: string }).constraint;
+      if (restricao === "piloto_numero_unico") {
+        return { erro: `O número ${numero} já está em uso por outro piloto.` };
+      }
       return { erro: "Já existe uma conta com esse e-mail." };
     }
     throw erro;
@@ -156,7 +160,7 @@ export async function cadastroPilotoMockAction(
     acao: "cadastro.piloto",
     entidade: "piloto",
     entidadeId: pilotoId,
-    depois: { nome, apelido, numero, categoriaId, uf },
+    depois: { nome, apelido, numero, categoriaId, uf, nascimento },
     ip: await ipDaRequisicao(),
   });
   await iniciarSessao(novoPerfil);

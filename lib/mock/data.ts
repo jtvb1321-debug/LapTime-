@@ -100,6 +100,14 @@ export const categorias: Categoria[] = [
     descricao: "Categoria para pilotos experientes, +18 anos.",
     pesoMinimoKg: 70,
   },
+  {
+    id: "cat-senior",
+    nome: "Sênior",
+    nivel: "senior",
+    slug: "senior",
+    descricao: "Categoria para pilotos veteranos.",
+    pesoMinimoKg: 0,
+  },
 ];
 
 export const etapas: Etapa[] = [];

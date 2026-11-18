@@ -8,6 +8,7 @@ const CORES_BADGE: Record<string, string> = {
   "cat-rookie": "bg-indigo-500/10 text-indigo-600",
   "cat-intermediaria": "bg-teal-500/10 text-teal-700",
   "cat-master": "bg-orange/10 text-orange-ink",
+  "cat-senior": "bg-amber-500/10 text-amber-700",
 };
 
 const CORES_SOLIDA: Record<string, string> = {
@@ -15,6 +16,7 @@ const CORES_SOLIDA: Record<string, string> = {
   "cat-rookie": "bg-indigo-500",
   "cat-intermediaria": "bg-teal-500",
   "cat-master": "bg-orange",
+  "cat-senior": "bg-amber-500",
 };
 
 export function corBadgeCategoria(categoriaId: string) {
