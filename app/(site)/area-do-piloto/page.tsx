@@ -1,3 +1,4 @@
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -81,7 +82,9 @@ export default async function AreaDoPilotoPage() {
                   {nomeExibicaoPiloto(piloto)}
                 </p>
                 <p className="text-ink-2 text-sm">
-                  {getCategoriaById(piloto.categoriaId)?.nome}
+                  <NomeCategoria categoriaId={piloto.categoriaId}>
+                    {getCategoriaById(piloto.categoriaId)?.nome}
+                  </NomeCategoria>
                 </p>
               </div>
               <Link

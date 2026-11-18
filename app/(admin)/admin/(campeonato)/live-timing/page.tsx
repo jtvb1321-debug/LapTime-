@@ -1,3 +1,4 @@
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -89,8 +90,10 @@ export default function AdminLiveTimingPage() {
               AO VIVO
             </StatusPill>
             <span className="text-ink-2 text-sm">
-              {getCategoriaById(bateriaAoVivo.categoriaId)?.nome} —{" "}
-              {bateriaAoVivo.nome}
+              <NomeCategoria categoriaId={bateriaAoVivo.categoriaId}>
+                {getCategoriaById(bateriaAoVivo.categoriaId)?.nome}
+              </NomeCategoria>{" "}
+              — {bateriaAoVivo.nome}
             </span>
           </div>
           <DataTable

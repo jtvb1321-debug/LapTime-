@@ -1,3 +1,4 @@
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusPill, toneParaStatus } from "@/components/ui/status-pill";
@@ -10,7 +11,14 @@ export const metadata: Metadata = { title: "Baterias" };
 
 const colunas: Coluna<Bateria>[] = [
   { header: "Horário", cell: (b) => b.horario },
-  { header: "Categoria", cell: (b) => getCategoriaById(b.categoriaId)?.nome },
+  {
+    header: "Categoria",
+    cell: (b) => (
+      <NomeCategoria categoriaId={b.categoriaId}>
+        {getCategoriaById(b.categoriaId)?.nome}
+      </NomeCategoria>
+    ),
+  },
   { header: "Bateria", cell: (b) => b.nome },
   { header: "Voltas", cell: (b) => b.voltas, numerica: true },
   {

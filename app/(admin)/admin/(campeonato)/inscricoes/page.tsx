@@ -1,3 +1,4 @@
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusPill, toneParaStatus } from "@/components/ui/status-pill";
@@ -15,7 +16,14 @@ export const metadata: Metadata = { title: "Inscrições" };
 
 const colunas: Coluna<Inscricao>[] = [
   { header: "Piloto", cell: (i) => getPilotoById(i.pilotoId)?.nome },
-  { header: "Categoria", cell: (i) => getCategoriaById(i.categoriaId)?.nome },
+  {
+    header: "Categoria",
+    cell: (i) => (
+      <NomeCategoria categoriaId={i.categoriaId}>
+        {getCategoriaById(i.categoriaId)?.nome}
+      </NomeCategoria>
+    ),
+  },
   {
     header: "Etapa",
     cell: (i) => etapas.find((e) => e.id === i.etapaId)?.nome,

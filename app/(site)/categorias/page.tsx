@@ -1,3 +1,4 @@
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { clsx } from "clsx";
@@ -24,7 +25,9 @@ export default function CategoriasPage() {
             />
             <CardBody className="flex flex-col gap-2">
               <h2 className="text-ink text-base font-semibold">
-                {categoria.nome}
+                <NomeCategoria categoriaId={categoria.id}>
+                  {categoria.nome}
+                </NomeCategoria>
               </h2>
               <p className="text-ink-2 text-sm">{categoria.descricao}</p>
               <p className="text-ink-3 mt-2 text-xs">

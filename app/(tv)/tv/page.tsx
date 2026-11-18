@@ -1,3 +1,4 @@
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import { AutoAtualizar } from "@/components/cronometragem/auto-atualizar";
 import { Logo } from "@/components/ui/logo";
 import { sincronizarDemoCorrida } from "@/lib/demo-corrida";
@@ -65,7 +66,12 @@ export default function TvPage() {
             {tracado ? ` · ${tracado.nome}` : ""}
           </p>
           <h1 className="mt-1 text-2xl font-semibold sm:text-3xl lg:text-4xl">
-            {categoria?.nome} — {bateria.nome}
+            {categoria ? (
+              <NomeCategoria categoriaId={categoria.id}>
+                {categoria.nome}
+              </NomeCategoria>
+            ) : null}{" "}
+            — {bateria.nome}
           </h1>
           <p className="mt-2 inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80">
             Dados de demonstração (simulação do campeonato)

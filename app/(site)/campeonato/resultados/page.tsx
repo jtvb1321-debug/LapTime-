@@ -1,3 +1,4 @@
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import { Avatar } from "@/components/ui/avatar";
 import { DataTable, type Coluna } from "@/components/ui/data-table";
@@ -92,7 +93,12 @@ export default function ResultadosPage() {
           <section key={bateria.id} className="flex flex-col gap-3">
             <div>
               <h2 className="text-ink text-base font-semibold">
-                {categoria?.nome} — {bateria.nome}
+                {categoria ? (
+                  <NomeCategoria categoriaId={categoria.id}>
+                    {categoria.nome}
+                  </NomeCategoria>
+                ) : null}{" "}
+                — {bateria.nome}
               </h2>
               <p className="text-ink-2 text-sm">
                 {etapa?.nome} · {etapa?.kartodromo}

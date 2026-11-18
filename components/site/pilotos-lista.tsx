@@ -1,5 +1,6 @@
 "use client";
 
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import { useState } from "react";
 import Link from "next/link";
 import { clsx } from "clsx";
@@ -57,7 +58,9 @@ export function PilotosLista({
                   corSolidaCategoria(categoria.id),
                 )}
               />
-              {categoria.nome}
+              <NomeCategoria categoriaId={categoria.id}>
+                {categoria.nome}
+              </NomeCategoria>
             </h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {pilotosDaCategoria.map((piloto) => (

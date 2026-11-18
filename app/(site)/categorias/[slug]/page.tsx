@@ -1,3 +1,4 @@
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -40,7 +41,9 @@ export default async function CategoriaPage({
         />
         <div className="px-6 pt-5">
           <h1 className="font-display text-ink before:bg-orange text-3xl font-bold tracking-tight before:mb-2 before:block before:h-1 before:w-9 before:rounded-full before:content-['']">
-            {categoria.nome}
+            <NomeCategoria categoriaId={categoria.id}>
+              {categoria.nome}
+            </NomeCategoria>
           </h1>
           <p className="text-ink-2 mt-1 text-sm">{categoria.descricao}</p>
           {categoria.pesoMinimoKg > 0 ? (

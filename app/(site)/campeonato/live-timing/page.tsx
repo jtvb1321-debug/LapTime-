@@ -1,3 +1,4 @@
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import { Avatar } from "@/components/ui/avatar";
 import { DataTable, type Coluna } from "@/components/ui/data-table";
@@ -111,7 +112,12 @@ export default function LiveTimingPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-ink text-base font-semibold">
-            {categoria?.nome} — {bateriaAoVivo.nome}
+            {categoria ? (
+              <NomeCategoria categoriaId={categoria.id}>
+                {categoria.nome}
+              </NomeCategoria>
+            ) : null}{" "}
+            — {bateriaAoVivo.nome}
           </h2>
           <p className="text-ink-2 text-sm">
             {etapa?.nome} · {etapa?.kartodromo} · {bateriaAoVivo.voltas} voltas

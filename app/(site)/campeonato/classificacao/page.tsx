@@ -1,3 +1,4 @@
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import { clsx } from "clsx";
 import { Avatar } from "@/components/ui/avatar";
@@ -72,7 +73,9 @@ export default function ClassificacaoPage() {
                 corSolidaCategoria(categoria.id),
               )}
             />
-            {categoria.nome}
+            <NomeCategoria categoriaId={categoria.id}>
+              {categoria.nome}
+            </NomeCategoria>
           </h2>
           <DataTable
             colunas={colunas}
