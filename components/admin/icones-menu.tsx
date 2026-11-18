@@ -106,7 +106,9 @@ const TRACOS: Record<string, string[]> = {
 };
 
 const ICONE_POR_HREF: Record<string, string> = {
+  "/": "painel",
   "/admin": "painel",
+  "/admin/pista-e-baterias": "bandeira",
   "/admin/balcao": "painel",
   "/admin/operacao/agenda": "calendario",
   "/admin/operacao/clientes": "pessoas",

@@ -165,8 +165,46 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   },
 ];
 
+// ---- Piloto -------------------------------------------------------------------------------
+// O piloto não opera nada: não tem nenhuma permissão do painel. Ele só CONSULTA, e só estas telas:
+// a página inicial do site, "Pista e baterias" (ao vivo e já realizadas, para ver o próprio
+// resultado) e, no Campeonato, a Estrutura e a Classificação. Qualquer outra rota de /admin o
+// layout devolve para a Área do piloto. As ações (gravar, apagar, operar) continuam exigindo
+// permissão no servidor, que o piloto não tem.
+const SECOES_DO_PILOTO = ["Estrutura", "Classificação"];
+
+const PREFIXOS_DO_PILOTO = [
+  "/admin/pista-e-baterias",
+  ...(ADMIN_NAV.find((g) => g.titulo === "Campeonato")
+    ?.itens.filter((i) => i.secao && SECOES_DO_PILOTO.includes(i.secao))
+    .map((i) => i.href) ?? []),
+];
+
+export function caminhoPermitidoAoPiloto(caminho: string): boolean {
+  return PREFIXOS_DO_PILOTO.some(
+    (p) => caminho === p || caminho.startsWith(`${p}/`),
+  );
+}
+
+const MENU_DO_PILOTO: AdminNavGroup[] = [
+  { titulo: "Início", fixo: true, itens: [{ href: "/", label: "Início" }] },
+  {
+    titulo: "Pista",
+    fixo: true,
+    itens: [{ href: "/admin/pista-e-baterias", label: "Pista e baterias" }],
+  },
+  {
+    titulo: "Campeonato",
+    itens:
+      ADMIN_NAV.find((g) => g.titulo === "Campeonato")?.itens.filter(
+        (i) => i.secao && SECOES_DO_PILOTO.includes(i.secao),
+      ) ?? [],
+  },
+];
+
 // Menu que um perfil enxerga: grupos permitidos, com só os itens permitidos.
 export function menuParaPapel(papel: PapelUsuario): AdminNavGroup[] {
+  if (papel === "piloto") return MENU_DO_PILOTO;
   // Quem não acessa o painel não tem menu (o layout já o redireciona).
   if (!pode(papel, "painel.acessar")) return [];
   return ADMIN_NAV.filter((g) => !g.ocultoPara?.includes(papel))

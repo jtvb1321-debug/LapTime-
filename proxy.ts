@@ -35,6 +35,7 @@ export function proxy(request: NextRequest) {
 
   const cabecalhosDaRequisicao = new Headers(request.headers);
   cabecalhosDaRequisicao.set("x-nonce", nonce);
+  cabecalhosDaRequisicao.set("x-pathname", request.nextUrl.pathname);
   cabecalhosDaRequisicao.set(nome, politica);
 
   const resposta = NextResponse.next({

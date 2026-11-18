@@ -94,6 +94,34 @@ export default async function AreaDoPilotoPage() {
           </Card>
 
           <section className="flex flex-col gap-3">
+            <h2 className="text-ink text-base font-semibold">Acompanhar</h2>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                [
+                  "/admin/pista-e-baterias",
+                  "Pista e baterias",
+                  "Ao vivo e resultados",
+                ],
+                ["/admin/campeonatos", "Campeonato", "Estrutura do campeonato"],
+                [
+                  "/admin/resultados",
+                  "Classificação",
+                  "Resultados e pontuação",
+                ],
+              ].map(([href, titulo, texto]) => (
+                <Link key={href} href={href}>
+                  <Card>
+                    <CardBody>
+                      <p className="text-ink font-medium">{titulo}</p>
+                      <p className="text-ink-3 text-xs">{texto}</p>
+                    </CardBody>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-3">
             <h2 className="text-ink text-base font-semibold">
               Meu vídeo de apresentação
             </h2>
