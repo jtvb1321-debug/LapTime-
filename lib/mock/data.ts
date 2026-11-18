@@ -92,6 +92,14 @@ export const categorias: Categoria[] = [
     descricao: "Categoria para quem está começando no kart.",
     pesoMinimoKg: 0,
   },
+  {
+    id: "cat-master",
+    nome: "Master",
+    nivel: "master",
+    slug: "master",
+    descricao: "Categoria para pilotos experientes, +18 anos.",
+    pesoMinimoKg: 70,
+  },
 ];
 
 export const etapas: Etapa[] = [];
