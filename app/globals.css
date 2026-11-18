@@ -1,0 +1,805 @@
+@import "tailwindcss";
+
+/*
+ * Tokens do Grid Lap (fonte única, design system v2).
+ * Paleta: azul #2B6EF5 (preenchimento/destaque), #1D55D6 (hover/seleção), ciano neon #4CC9FF (destaque no escuro),
+ * grafite #171C25, fundo #F5F7FA. Contraste (WCAG) medido:
+ *  - laranja sobre branco = 2,8:1 e #EA580C = 3,6:1 (NÃO servem para texto
+ *    pequeno): texto laranja em fundo claro usa --color-orange-ink (#C2410C, 5,2:1);
+ *  - texto grafite sobre laranja = 6,1:1 (botões e selos laranja);
+ *  - texto de status usa as variantes escuras (--color-success/warning/danger/info);
+ *    as cores "-fill" são só para preenchimento, borda e ícone.
+ */
+:root {
+  /* marca */
+  --color-orange: #2b6ef5;
+  --color-orange-strong: #1d55d6;
+  --color-orange-soft: #a9cbff;
+  --color-orange-ink: #1d4ed8;
+  --color-on-orange: #ffffff;
+  --color-graphite: #0a1226;
+  --color-graphite-2: #1f2d4d;
+  --color-header: #0a1226;
+
+  /* neutros */
+  --color-bg: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-ink: #17202e;
+  --color-ink-2: #475569;
+  --color-ink-3: #5b6b80;
+
+  /* estados: texto (variantes escuras) e fundo suave */
+  --color-success: #15803d;
+  --color-success-bg: #dcfce7;
+  --color-warning: #92400e;
+  --color-warning-bg: #fef3c7;
+  --color-danger: #b91c1c;
+  --color-danger-bg: #fee2e2;
+  --color-info: #1d4ed8;
+  --color-info-bg: #dbeafe;
+  /* estados: preenchimento, borda e ícone (não usar como texto pequeno) */
+  --color-success-fill: #16a34a;
+  --color-warning-fill: #f59e0b;
+  --color-danger-fill: #dc2626;
+  --color-info-fill: #2563eb;
+
+  /* forma e ritmo */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+  --alvo-toque: 2.75rem;
+  --foco: 0 0 0 3px rgba(76, 201, 255, 0.5);
+  --sombra-card: 0 1px 2px rgba(23, 32, 46, 0.05);
+  --sombra-elevada: 0 10px 30px rgba(23, 32, 46, 0.18);
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-ink: var(--color-ink);
+  --color-ink-2: var(--color-ink-2);
+  --color-ink-3: var(--color-ink-3);
+  --color-orange: var(--color-orange);
+  --color-orange-strong: var(--color-orange-strong);
+  --color-orange-soft: var(--color-orange-soft);
+  --color-orange-ink: var(--color-orange-ink);
+  --color-on-orange: var(--color-on-orange);
+  --color-graphite: var(--color-graphite);
+  --color-graphite-2: var(--color-graphite-2);
+  --color-header: var(--color-header);
+  --color-success: var(--color-success);
+  --color-success-bg: var(--color-success-bg);
+  --color-warning: var(--color-warning);
+  --color-warning-bg: var(--color-warning-bg);
+  --color-danger: var(--color-danger);
+  --color-danger-bg: var(--color-danger-bg);
+  --color-info: var(--color-info);
+  --color-info-bg: var(--color-info-bg);
+  --color-success-fill: var(--color-success-fill);
+  --color-warning-fill: var(--color-warning-fill);
+  --color-danger-fill: var(--color-danger-fill);
+  --color-info-fill: var(--color-info-fill);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-roboto-mono), ui-monospace, monospace;
+  --font-display:
+    var(--font-rajdhani), var(--font-inter), ui-sans-serif, system-ui,
+    sans-serif;
+}
+
+/* Tempos, posições e códigos: números de largura fixa. */
+.font-mono,
+.tabular,
+.font-display {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rajdhani: cronômetros, tempos, posições e números de kart (números tabulares). */
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Foco visível em tudo que se opera por teclado. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-orange-strong);
+  outline-offset: 2px;
+}
+
+body {
+  background: var(--color-bg) url("/fundo-gridlap.webp") center / cover
+    no-repeat fixed;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--color-ink);
+  color: #ffffff;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Fade do rótulo (nome/extensão) que entra por cima do traçado ampliado —
+   ver components/site/tracados-lista.tsx. */
+@keyframes tracado-fade-label {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---- Animação de entrada após o login (components/entrada) ---- */
+.gl-entrada {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 1rem;
+  background:
+    linear-gradient(rgba(23, 25, 30, 0.93), rgba(23, 25, 30, 0.97)),
+    url("/fundo-gridlap.webp") center / cover no-repeat;
+  color: #c9ced8;
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+.gl-entrada--saindo {
+  opacity: 0;
+  pointer-events: none;
+}
+.gl-entrada__texto {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  animation: gl-entrada-aparecer 0.5s ease-out 0.6s forwards;
+}
+.gl-entrada__giro {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid rgba(76, 201, 255, 0.3);
+  border-top-color: #4cc9ff;
+  border-radius: 9999px;
+  animation: gl-entrada-girar 0.8s linear infinite;
+}
+.gl-entrada__erro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 22rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+.gl-entrada__erro button {
+  border: 1px solid #4cc9ff;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  color: #fff;
+  background: transparent;
+  font-weight: 500;
+}
+.gl-entrada__erro button:hover,
+.gl-entrada__erro button:focus-visible {
+  background: #2b6ef5;
+  outline: none;
+}
+@keyframes gl-entrada-aparecer {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes gl-entrada-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Movimento reduzido: apresentação estática, sem animar nada. */
+@media (prefers-reduced-motion: reduce) {
+  .gl-entrada {
+    transition: none;
+  }
+  .gl-entrada__texto {
+    animation: none;
+    opacity: 1;
+  }
+  .gl-entrada__giro {
+    animation: none;
+  }
+}
+
+/*
+ * Fundo grafite do Grid Lap, feito só com CSS (gradientes): o arquivo de
+ * imagem aprovado (grafite, textura de pista, curvas com luz laranja) não está
+ * no projeto. Quando existir, troque este bloco por
+ * url("/fundo-gridlap-grafite.webp") sem mudar as páginas que usam a classe.
+ */
+.fundo-grafite {
+  background:
+    radial-gradient(
+      55% 40% at 50% 48%,
+      rgba(255, 255, 255, 0.05),
+      transparent 70%
+    ),
+    radial-gradient(
+      38% 32% at 0% 100%,
+      rgba(43, 110, 245, 0.4),
+      transparent 72%
+    ),
+    radial-gradient(34% 28% at 100% 0%, rgba(76, 201, 255, 0.28), transparent 72%),
+    linear-gradient(135deg, #0c1630, #09112a 55%, #050a14);
+  background-color: var(--color-graphite);
+}
+
+/* Papel e PDF: fundo branco, sem decoração. */
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000;
+  }
+}
+
+/*
+ * iPhone: campo com fonte menor que 16px faz o Safari ampliar a tela ao focar.
+ * Vale só no celular; no computador os campos continuam compactos.
+ */
+@media (max-width: 767px) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Movimento reduzido: sem transições de cor/posição nem giro de "aguarde". */
+@media (prefers-reduced-motion: reduce) {
+  .transition-colors,
+  .transition-transform,
+  .transition-all,
+  .animate-spin,
+  .animate-pulse {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ---- Pit wall: tela de preparação da bateria (components/cronometragem/preparacao-da-bateria.tsx) ----
+   Painel escuro com cantos chanfrados, bandeiras de estado e placas de kart. Só esta tela usa. */
+.pw {
+  --pw-bg: #14171d;
+  --pw-panel: #1b1f27;
+  --pw-line: #2c323d;
+  --pw-ink: #eceef2;
+  --pw-dim: #a0a8b5;
+  --pw-verde: #3ddc84;
+  --pw-ambar: #ffb020;
+  --pw-vermelho: #ff6b6b;
+  --pw-azul: #6cb2ff;
+  --pw-laranja: #4cc9ff;
+  --pw-roxo: #c58bff;
+  background: var(--pw-bg);
+  color: var(--pw-ink);
+  clip-path: polygon(
+    0 0,
+    calc(100% - 18px) 0,
+    100% 18px,
+    100% 100%,
+    18px 100%,
+    0 calc(100% - 18px)
+  );
+}
+.pw-chanfro {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% 100%,
+    10px 100%,
+    0 calc(100% - 10px)
+  );
+}
+.pw-placa {
+  display: inline-flex;
+  min-width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.125rem 0.5rem;
+  background: #f4f5f7;
+  color: #14171d;
+  font-family: var(--font-display);
+  font-size: 1.1em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  border-radius: 0.25rem;
+  border-bottom: 3px solid var(--pw-laranja);
+}
+.pw-placa[data-estado="livre"] {
+  background: transparent;
+  color: var(--pw-ink);
+  border: 1px solid var(--pw-dim);
+  border-bottom-width: 3px;
+}
+.pw-placa[data-estado="sem-sensor"] {
+  background: transparent;
+  color: var(--pw-ambar);
+  border: 1px dashed var(--pw-ambar);
+}
+.pw-placa[data-estado="fora"] {
+  background: transparent;
+  color: var(--pw-dim);
+  border: 1px solid var(--pw-line);
+  text-decoration: line-through;
+}
+.pw-placa[data-estado="vazio"] {
+  background: transparent;
+  color: var(--pw-vermelho);
+  border: 1px dashed var(--pw-vermelho);
+}
+.pw :where(a):focus-visible,
+.pw :where(button):focus-visible {
+  outline-color: var(--pw-ink);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pw-seg {
+    transition: background-color 0.3s;
+  }
+}
+
+/* ---- Design system v2: componentes compartilhados (components/ui) ---- */
+
+@layer components {
+  /* Campo de formulário padrão (input, select, textarea). */
+  .campo {
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    outline: none;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
+  .campo::placeholder {
+    color: var(--color-ink-3);
+  }
+  .campo:hover {
+    border-color: var(--color-ink-3);
+  }
+  .campo:focus {
+    border-color: var(--color-orange-strong);
+    box-shadow: var(--foco);
+  }
+  .campo:disabled {
+    background: var(--color-bg);
+    color: var(--color-ink-3);
+    cursor: not-allowed;
+  }
+  .campo[aria-invalid="true"] {
+    border-color: var(--color-danger-fill);
+  }
+}
+
+/* "Aguarde": giro e bloco de carregamento (sem animar com movimento reduzido). */
+.gl-giro {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: gl-entrada-girar 0.7s linear infinite;
+}
+.gl-esqueleto {
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-bg) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: gl-esqueleto 1.4s ease-in-out infinite;
+}
+@keyframes gl-esqueleto {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-giro,
+  .gl-esqueleto {
+    animation: none;
+  }
+}
+
+/* =====================================================================================
+   Redesign v2: canvas escuro com camada de fundo animada (components/ui/canvas-escuro).
+   Só apresentação. O "canvas" (site público e painel) é escuro; toda SUPERFÍCIE
+   (.bg-surface: cartões, tabelas, menus, botões secundários; .campo e controles de formulário)
+   volta aos tokens claros do design system, então tabelas, relatórios e formulários mantêm o
+   contraste de sempre. O texto solto sobre o canvas usa os tokens claros abaixo.
+   Contrastes sobre #0e131b: texto #f1f5f9 (16:1), #cbd5e1 (11:1), #94a3b8 (6,3:1);
+   laranja de texto #fb923c (7,6:1); estados #4ade80, #fbbf24, #f87171, #60a5fa (> 8:1).
+   ===================================================================================== */
+.gl-canvas {
+  --color-bg: #050a14;
+  --color-ink: #f4f8ff;
+  --color-ink-2: #cfdcf3;
+  --color-ink-3: #9fb2d4;
+  --color-border: rgba(160, 190, 255, 0.16);
+  --color-border-strong: rgba(160, 190, 255, 0.3);
+  --color-orange-ink: #4cc9ff;
+  --color-success: #35f2c2;
+  --color-success-bg: rgba(53, 242, 194, 0.14);
+  --color-warning: #ffcf4a;
+  --color-warning-bg: rgba(251, 191, 36, 0.14);
+  --color-danger: #ff5d7a;
+  --color-danger-bg: rgba(255, 93, 122, 0.14);
+  --color-info: #4cc9ff;
+  --color-info-bg: rgba(76, 201, 255, 0.14);
+  --sombra-card: 0 10px 32px rgba(0, 0, 0, 0.4);
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+/* Superfícies claras dentro do canvas: mesmos valores do :root (manter os dois em sincronia). */
+.gl-canvas
+  :is(
+    .bg-surface,
+    .gl-superficie,
+    .campo,
+    select,
+    textarea,
+    input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"])
+  ) {
+  --color-bg: #f5f7fa;
+  --color-ink: #17202e;
+  --color-ink-2: #475569;
+  --color-ink-3: #5b6b80;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-orange-ink: #1d4ed8;
+  --color-success: #15803d;
+  --color-success-bg: #dcfce7;
+  --color-warning: #92400e;
+  --color-warning-bg: #fef3c7;
+  --color-danger: #b91c1c;
+  --color-danger-bg: #fee2e2;
+  --color-info: #1d4ed8;
+  --color-info-bg: #dbeafe;
+  --sombra-card: 0 1px 2px rgba(23, 32, 46, 0.05);
+  color: var(--color-ink);
+}
+.gl-canvas ::selection {
+  background: var(--color-orange);
+  color: var(--color-on-orange);
+}
+.gl-canvas .bg-surface ::selection {
+  background: var(--color-ink);
+  color: #ffffff;
+}
+
+/* Camada de fundo: decorativa, atrás de tudo, nunca recebe clique. Noite quase preta com o mapa do
+   circuito apagado à direita e linhas neon curvas na base (laranja, vermelho e azul). */
+.gl-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      1100px 620px at 12% 100%,
+      rgba(43, 110, 245, 0.12),
+      transparent 62%
+    ),
+    radial-gradient(
+      1200px 700px at 92% -8%,
+      rgba(59, 130, 246, 0.13),
+      transparent 62%
+    ),
+    radial-gradient(
+      900px 560px at 100% 100%,
+      rgba(76, 201, 255, 0.1),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #040812 0%, #070e1d 100%);
+}
+.gl-fundo__grade {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(147, 197, 253, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 197, 253, 0.03) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse at 60% 25%, #000 5%, transparent 72%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at 60% 25%,
+    #000 5%,
+    transparent 72%
+  );
+}
+/* Mapa do circuito do VeloKart ao fundo (svg .gl-fundo__mapa, com a luz .gl-pista-luz). */
+.gl-fundo__mapa {
+  position: absolute;
+  top: 50%;
+  right: -4%;
+  width: min(78vh, 62vw);
+  height: auto;
+  translate: 0 -50%;
+}
+.gl-fundo__vinheta {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(2, 4, 8, 0.65) 100%
+  );
+}
+/* Telas operacionais críticas (cronometragem): fundo estático, sem movimento. */
+.gl-fundo[data-modo="leve"] * {
+  animation: none !important;
+}
+/* Aba oculta: pausa o que ainda anima. */
+.gl-fundo[data-pausado] * {
+  animation-play-state: paused !important;
+}
+@media (max-width: 639px) {
+  .gl-fundo__mapa {
+    right: -30%;
+    width: 120vw;
+    opacity: 0.8;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-fundo * {
+    animation: none !important;
+  }
+}
+@media print {
+  .gl-fundo {
+    display: none;
+  }
+  .gl-canvas {
+    --color-bg: #ffffff;
+    --color-ink: #17202e;
+    --color-ink-2: #475569;
+    --color-ink-3: #5b6b80;
+    --color-border: #e2e8f0;
+    --color-orange-ink: #1d4ed8;
+    background: #ffffff;
+  }
+}
+
+/* Luz laranja correndo pelo traçado do circuito (components/site/pista-luminosa). */
+.gl-pista-luz {
+  fill: none;
+  stroke: #4cc9ff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dashoffset: 1;
+  animation: gl-pista-correr 9s linear infinite;
+}
+.gl-pista-luz--cauda {
+  stroke-width: 5;
+  stroke-dasharray: 0.16 0.84;
+  opacity: 0.35;
+  animation-delay: 0.99s;
+}
+.gl-pista-luz--cabeca {
+  stroke-width: 6;
+  stroke-dasharray: 0.05 0.95;
+  filter: drop-shadow(0 0 7px rgba(76, 201, 255, 0.9));
+}
+@keyframes gl-pista-correr {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.gl-pista[data-pausado] .gl-pista-luz {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-pista-luz {
+    animation: none;
+    stroke-dashoffset: 0.7;
+  }
+}
+
+/* Logo que se completa (carregamento estilo F1): fantasma apagado + logo cheia revelada da
+   esquerda para a direita, com uma borda de luz na frente. */
+.gl-carga {
+  position: relative;
+  width: min(70vw, 340px);
+  aspect-ratio: 1000 / 334;
+}
+.gl-carga__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.gl-carga__fantasma {
+  opacity: 0.14;
+  filter: grayscale(1);
+}
+.gl-carga__cheio {
+  clip-path: inset(0 100% 0 0);
+  animation: gl-carga-revelar var(--carga-duracao, 2.6s)
+    cubic-bezier(0.5, 0, 0.25, 1) forwards;
+}
+.gl-carga__luz {
+  position: absolute;
+  top: -6%;
+  bottom: -6%;
+  left: 0;
+  width: 3px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 0 14px 4px rgba(76, 201, 255, 0.85);
+  animation: gl-carga-luz var(--carga-duracao, 2.6s)
+    cubic-bezier(0.5, 0, 0.25, 1) forwards;
+}
+@keyframes gl-carga-revelar {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes gl-carga-luz {
+  to {
+    left: 100%;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-carga__cheio {
+    animation: none;
+    clip-path: none;
+  }
+  .gl-carga__luz {
+    display: none;
+  }
+}
+
+/* Fonte de automobilismo (Rajdhani) nos rótulos de menu: site, topbar, abas e navegação do painel. */
+.gl-canvas :is(nav, header) :is(a, button),
+.gl-menu-fonte {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ---- Abertura animada (components/site/abertura-*) ----------------------------------------
+   Um kart percorre e desenha a pista do VeloKart enquanto o sistema "carrega". Por cima de uma
+   página já carregada; sai sozinha por CSS (funciona sem JS), pode ser dispensada, e com movimento
+   reduzido não aparece. */
+.gl-abertura {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(
+      900px 520px at 50% 40%,
+      rgba(76, 201, 255, 0.14),
+      transparent 62%
+    ),
+    linear-gradient(180deg, #050a14, #0c1630);
+  color: #cbd5e1;
+  overflow: hidden;
+  animation: gl-abertura-sair 0.5s ease 3.1s forwards;
+}
+.gl-abertura--pular {
+  animation: gl-abertura-sair 0.28s ease forwards;
+}
+.gl-abertura__centro {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  width: min(86vw, 420px);
+}
+.gl-abertura__lema {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: gl-abertura-aparecer 0.6s ease 0.6s forwards;
+}
+.gl-abertura__dica {
+  position: absolute;
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  opacity: 0;
+  animation: gl-abertura-aparecer 0.5s ease 1.1s forwards;
+}
+@keyframes gl-abertura-aparecer {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes gl-abertura-sair {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: scale(1.03);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-abertura {
+    display: none;
+  }
+}
+@media print {
+  .gl-abertura {
+    display: none;
+  }
+}
+
+/* ---- Navegação inferior do painel (components/admin/admin-nav-inferior) --------------------
+   --nav-inferior é o espaço que a barra ocupa no pé da tela (celular: barra; computador: dock
+   flutuante). O conteúdo e a barra de comandos da bateria reservam esse espaço. */
+.gl-admin {
+  --nav-inferior: 4.5rem;
+}
+@media (min-width: 768px) {
+  .gl-admin {
+    --nav-inferior: 5rem;
+  }
+}
+.gl-subir {
+  animation: gl-subir 0.22s ease-out;
+}
+@keyframes gl-subir {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@media (min-width: 768px) {
+  .gl-subir {
+    animation-name: gl-subir-centro;
+  }
+  @keyframes gl-subir-centro {
+    from {
+      opacity: 0;
+      translate: 0 14px;
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-subir {
+    animation: none;
+  }
+}
