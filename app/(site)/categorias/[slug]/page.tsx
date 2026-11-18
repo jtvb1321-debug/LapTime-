@@ -43,9 +43,11 @@ export default async function CategoriaPage({
             {categoria.nome}
           </h1>
           <p className="text-ink-2 mt-1 text-sm">{categoria.descricao}</p>
-          <p className="text-ink-3 mt-1 text-xs">
-            Peso mínimo: {categoria.pesoMinimoKg} kg
-          </p>
+          {categoria.pesoMinimoKg > 0 ? (
+            <p className="text-ink-3 mt-1 text-xs">
+              Peso mínimo: {categoria.pesoMinimoKg} kg
+            </p>
+          ) : null}
         </div>
       </div>
 

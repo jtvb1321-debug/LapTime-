@@ -28,7 +28,9 @@ export default function CategoriasPage() {
               </h2>
               <p className="text-ink-2 text-sm">{categoria.descricao}</p>
               <p className="text-ink-3 mt-2 text-xs">
-                Peso mínimo: {categoria.pesoMinimoKg} kg ·{" "}
+                {categoria.pesoMinimoKg > 0
+                  ? `Peso mínimo: ${categoria.pesoMinimoKg} kg · `
+                  : ""}
                 {getPilotosPorCategoria(categoria.id).length} pilotos
               </p>
             </CardBody>

@@ -69,12 +69,28 @@ export const campeonato: Campeonato | undefined = campeonatos.find(
 
 export const categorias: Categoria[] = [
   {
-    id: "cat-master",
-    nome: "Master",
-    nivel: "master",
-    slug: "master",
-    descricao: "Categoria para pilotos experientes, +18 anos.",
-    pesoMinimoKg: 70,
+    id: "cat-feminina",
+    nome: "Feminina",
+    nivel: "feminina",
+    slug: "feminina",
+    descricao: "Categoria exclusiva para pilotas.",
+    pesoMinimoKg: 0,
+  },
+  {
+    id: "cat-intermediaria",
+    nome: "Intermediária",
+    nivel: "intermediaria",
+    slug: "intermediaria",
+    descricao: "Categoria para pilotos com alguma experiência de pista.",
+    pesoMinimoKg: 0,
+  },
+  {
+    id: "cat-rookie",
+    nome: "Rookie",
+    nivel: "rookie",
+    slug: "rookie",
+    descricao: "Categoria para quem está começando no kart.",
+    pesoMinimoKg: 0,
   },
 ];
 

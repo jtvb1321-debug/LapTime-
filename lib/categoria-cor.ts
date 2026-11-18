@@ -4,12 +4,14 @@
 // paleta semântica principal do site (preto = ação/estrutura, roxo = ao vivo/
 // energia).
 const CORES_BADGE: Record<string, string> = {
+  "cat-feminina": "bg-pink-500/10 text-pink-600",
   "cat-rookie": "bg-indigo-500/10 text-indigo-600",
   "cat-intermediaria": "bg-teal-500/10 text-teal-700",
   "cat-master": "bg-orange/10 text-orange-ink",
 };
 
 const CORES_SOLIDA: Record<string, string> = {
+  "cat-feminina": "bg-pink-500",
   "cat-rookie": "bg-indigo-500",
   "cat-intermediaria": "bg-teal-500",
   "cat-master": "bg-orange",

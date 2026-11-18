@@ -10,7 +10,11 @@ export const metadata: Metadata = { title: "Categorias" };
 const colunas: Coluna<Categoria>[] = [
   { header: "Nome", cell: (c) => c.nome },
   { header: "Nível", cell: (c) => c.nivel },
-  { header: "Peso mínimo (kg)", cell: (c) => c.pesoMinimoKg, numerica: true },
+  {
+    header: "Peso mínimo (kg)",
+    cell: (c) => (c.pesoMinimoKg > 0 ? c.pesoMinimoKg : "—"),
+    numerica: true,
+  },
   {
     header: "Pilotos",
     cell: (c) => getPilotosPorCategoria(c.id).length,
