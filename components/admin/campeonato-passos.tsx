@@ -23,6 +23,7 @@ import {
 import { LOGO_TAMANHO_MAXIMO_BYTES, reduzirLogo } from "@/lib/logo-reduzido";
 import type { AcaoState } from "@/lib/operacao-actions";
 import { formatDataEHora } from "@/lib/etapa-formato";
+import { formatMoeda } from "@/lib/mock/data";
 import type { Etapa, Tracado } from "@/lib/types";
 
 const INICIAL: AcaoState = {};
@@ -732,6 +733,7 @@ export function EtapasDoCampeonato({
   const [hora, setHora] = useState("");
   const [tracadoId, setTracadoId] = useState("");
   const [situacao, setSituacao] = useState("agendada");
+  const [valor, setValor] = useState("");
   const [resultado, setResultado] = useState<AcaoState | null>(null);
   const [pendente, iniciar] = useTransition();
 
@@ -745,9 +747,24 @@ export function EtapasDoCampeonato({
     setHora(etapa?.hora ?? "");
     setTracadoId(etapa?.tracadoId ?? "");
     setSituacao(etapa?.status ?? "agendada");
+    setValor(
+      etapa?.valorInscricaoCentavos
+        ? (etapa.valorInscricaoCentavos / 100).toFixed(2).replace(".", ",")
+        : "",
+    );
   }
 
   function salvar() {
+    const reais =
+      valor.trim() === ""
+        ? 0
+        : Number(valor.replace(/\./g, "").replace(",", "."));
+    if (!Number.isFinite(reais) || reais < 0) {
+      setResultado({
+        erro: "Informe o valor da inscrição em reais (ex.: 80,00) ou deixe em branco.",
+      });
+      return;
+    }
     iniciar(async () => {
       const r = await salvarEtapaAction(
         campeonatoId,
@@ -760,6 +777,7 @@ export function EtapasDoCampeonato({
           hora,
           tracadoId: tracadoId || undefined,
           status: situacao,
+          valorInscricaoCentavos: Math.round(reais * 100),
         },
       );
       setResultado(r);
@@ -796,6 +814,10 @@ export function EtapasDoCampeonato({
                   <p className="text-ink-2 text-xs">
                     {e.kartodromo}, {e.cidade}
                     {tracado ? ` · ${tracado.nome}` : ""}
+                    {" · Inscrição "}
+                    {e.valorInscricaoCentavos
+                      ? formatMoeda(e.valorInscricaoCentavos)
+                      : "gratuita"}
                   </p>
                 </div>
                 {podeEditar ? (
@@ -948,6 +970,22 @@ export function EtapasDoCampeonato({
                   vincular um aqui.
                 </p>
               ) : null}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="etapa-valor"
+                className="text-ink text-sm font-medium"
+              >
+                Valor da inscrição (R$)
+              </label>
+              <input
+                id="etapa-valor"
+                inputMode="decimal"
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
+                placeholder="Em branco = gratuita"
+                className="campo"
+              />
             </div>
             {editando !== "nova" ? (
               <div className="flex flex-col gap-1.5">

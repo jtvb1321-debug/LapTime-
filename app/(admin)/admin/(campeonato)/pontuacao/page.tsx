@@ -1,3 +1,4 @@
+import { AvisoEmDesenvolvimento } from "@/components/admin/aviso-em-desenvolvimento";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
@@ -26,6 +27,7 @@ const colunasPilotos: Coluna<Piloto>[] = [
 export default function AdminPontuacaoPage() {
   return (
     <div className="flex flex-col gap-6">
+      <AvisoEmDesenvolvimento />
       <PageHeader
         title="Pontuação"
         description="Regra de pontos por posição e classificação atual por categoria."

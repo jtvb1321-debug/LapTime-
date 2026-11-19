@@ -24,11 +24,12 @@ interface LinhaEtapa {
   hora: string;
   status: StatusEtapa;
   tracado_id: string | null;
+  valor_inscricao_centavos: number;
 }
 
 const SELECT = `select id, campeonato_id, numero, nome, kartodromo, cidade,
        to_char(data, 'YYYY-MM-DD') as data, to_char(hora, 'HH24:MI') as hora,
-       status, tracado_id
+       status, tracado_id, valor_inscricao_centavos
   from etapa`;
 
 function deLinha(l: LinhaEtapa): Etapa {
@@ -43,6 +44,7 @@ function deLinha(l: LinhaEtapa): Etapa {
     hora: l.hora,
     status: l.status,
     tracadoId: l.tracado_id ?? undefined,
+    valorInscricaoCentavos: l.valor_inscricao_centavos,
   };
 }
 
@@ -74,6 +76,7 @@ export interface DadosDaEtapa {
   tracadoId?: string;
   status?: string;
   numero?: number;
+  valorInscricaoCentavos?: number;
 }
 
 const DATA = /^\d{4}-\d{2}-\d{2}$/;
@@ -112,7 +115,20 @@ function validar(d: DadosDaEtapa) {
   ) {
     throw new ErroNegocio("O número da etapa deve ser de 1 a 99.");
   }
-  return { nome, kartodromo, cidade, status, tracadoId: d.tracadoId || null };
+  const valor = d.valorInscricaoCentavos ?? 0;
+  if (!Number.isInteger(valor) || valor < 0 || valor > 10_000_000) {
+    throw new ErroNegocio(
+      "O valor da inscrição deve ser de R$ 0,00 a R$ 100.000,00.",
+    );
+  }
+  return {
+    nome,
+    kartodromo,
+    cidade,
+    status,
+    tracadoId: d.tracadoId || null,
+    valor,
+  };
 }
 
 async function conferirTracado(campeonatoId: string, tracadoId: string | null) {
@@ -145,8 +161,8 @@ export async function criarEtapa(
   const numero = d.numero ?? prox?.n ?? 1;
   try {
     await consultar(
-      `insert into etapa (id, campeonato_id, numero, nome, kartodromo, cidade, data, hora, status, tracado_id)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      `insert into etapa (id, campeonato_id, numero, nome, kartodromo, cidade, data, hora, status, tracado_id, valor_inscricao_centavos)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         `etapa-${randomUUID().slice(0, 8)}`,
         campeonatoId,
@@ -158,6 +174,7 @@ export async function criarEtapa(
         d.hora,
         v.status,
         v.tracadoId,
+        v.valor,
       ],
     );
   } catch (e) {
@@ -183,7 +200,8 @@ export async function atualizarEtapa(
   try {
     await consultar(
       `update etapa set numero = $2, nome = $3, kartodromo = $4, cidade = $5,
-              data = $6, hora = $7, status = $8, tracado_id = $9
+              data = $6, hora = $7, status = $8, tracado_id = $9,
+              valor_inscricao_centavos = $10
         where id = $1`,
       [
         id,
@@ -195,6 +213,7 @@ export async function atualizarEtapa(
         d.hora,
         v.status,
         v.tracadoId,
+        v.valor,
       ],
     );
   } catch (e) {

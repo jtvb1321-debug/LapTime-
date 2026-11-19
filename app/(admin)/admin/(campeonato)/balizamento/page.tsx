@@ -1,3 +1,4 @@
+import { AvisoEmDesenvolvimento } from "@/components/admin/aviso-em-desenvolvimento";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { BalizamentoCategoria } from "@/components/admin/balizamento-categoria";
@@ -8,6 +9,7 @@ export const metadata: Metadata = { title: "Balizamento" };
 export default function AdminBalizamentoPage() {
   return (
     <div className="flex flex-col gap-8">
+      <AvisoEmDesenvolvimento />
       <PageHeader
         title="Balizamento"
         description="Sorteio de kart, pesagem e lastro por categoria. O número do kart pode ser sorteado ou digitado manualmente, e cada troca solicitada pelo piloto fica registrada."

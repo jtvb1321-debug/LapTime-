@@ -1,3 +1,4 @@
+import { AvisoEmDesenvolvimento } from "@/components/admin/aviso-em-desenvolvimento";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -10,6 +11,7 @@ export const metadata: Metadata = { title: "Recursos" };
 export default function AdminRecursosPage() {
   return (
     <div className="flex flex-col gap-6">
+      <AvisoEmDesenvolvimento />
       <PageHeader
         title="Recursos"
         description="Recursos contra punições ou resultados, protocolados pelos pilotos."

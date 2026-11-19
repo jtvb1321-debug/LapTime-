@@ -1,47 +1,50 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { PagamentosAdmin } from "@/components/admin/pagamentos-admin";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusPill, toneParaStatus } from "@/components/ui/status-pill";
-import { DataTable, type Coluna } from "@/components/ui/data-table";
-import {
-  formatData,
-  formatMoeda,
-  getInscricaoById,
-  getPilotoById,
-  pagamentos,
-} from "@/lib/mock/data";
-import type { Pagamento } from "@/lib/types";
+import { getSession } from "@/lib/auth";
+import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
+import { lerInscricoesDoCampeonato } from "@/lib/inscricoes-store";
+import { pode } from "@/lib/permissoes";
 
 export const metadata: Metadata = { title: "Pagamentos" };
+export const dynamic = "force-dynamic";
 
-const colunas: Coluna<Pagamento>[] = [
-  {
-    header: "Piloto",
-    cell: (p) =>
-      getPilotoById(getInscricaoById(p.inscricaoId)?.pilotoId ?? "")?.nome,
-  },
-  {
-    header: "Valor",
-    cell: (p) => formatMoeda(p.valorCentavos),
-    numerica: true,
-  },
-  { header: "Método", cell: (p) => p.metodo },
-  { header: "Data", cell: (p) => formatData(p.criadaEm) },
-  {
-    header: "Status",
-    cell: (p) => (
-      <StatusPill tone={toneParaStatus(p.status)}>{p.status}</StatusPill>
-    ),
-  },
-];
+export default async function AdminPagamentosPage() {
+  const [campeonato, sessao] = await Promise.all([
+    lerCampeonatoAtivo(),
+    getSession(),
+  ]);
+  const inscricoes = campeonato
+    ? await lerInscricoesDoCampeonato(campeonato.id)
+    : [];
 
-export default function AdminPagamentosPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Pagamentos"
-        description="Pagamentos referentes às inscrições."
+        description="Pagamentos das inscrições: confirme quando receber (Pix, dinheiro ou cartão)."
       />
-      <DataTable colunas={colunas} linhas={pagamentos} chave={(p) => p.id} />
+      {!campeonato ? (
+        <p className="border-border text-ink-2 rounded-xl border border-dashed px-5 py-10 text-center text-sm">
+          Não há campeonato ativo. Ative um em{" "}
+          <Link
+            href="/admin/campeonatos"
+            className="text-orange-ink font-medium hover:underline"
+          >
+            Campeonatos
+          </Link>
+          .
+        </p>
+      ) : (
+        <PagamentosAdmin
+          inscricoes={inscricoes}
+          podeEditar={Boolean(
+            sessao && pode(sessao.papel, "cadastro.gerenciar"),
+          )}
+          podeEstornar={Boolean(sessao && pode(sessao.papel, "caixa.estornar"))}
+        />
+      )}
     </div>
   );
 }

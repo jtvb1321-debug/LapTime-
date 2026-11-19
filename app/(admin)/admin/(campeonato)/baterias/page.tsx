@@ -1,3 +1,4 @@
+import { AvisoEmDesenvolvimento } from "@/components/admin/aviso-em-desenvolvimento";
 import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
@@ -34,6 +35,7 @@ const colunas: Coluna<Bateria>[] = [
 export default function AdminBateriasPage() {
   return (
     <div className="flex flex-col gap-6">
+      <AvisoEmDesenvolvimento />
       <PageHeader
         title="Baterias"
         description="Programação de baterias da etapa atual."

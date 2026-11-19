@@ -10,10 +10,11 @@ import { getSession, podeAcessarAdmin } from "@/lib/auth";
 import {
   formatMoeda,
   getCategoriaById,
-  inscricoes,
   nomeExibicaoPiloto,
-  pagamentos,
 } from "@/lib/mock/data";
+import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
+import { formatDataEHora } from "@/lib/etapa-formato";
+import { lerInscricoesDoPiloto } from "@/lib/inscricoes-store";
 import { EnviarApresentacao } from "@/components/pilotos/enviar-apresentacao";
 import { lerApresentacao } from "@/lib/apresentacao-store";
 import { encontrarPilotoPorId } from "@/lib/pilotos-store";
@@ -28,6 +29,13 @@ export default async function AreaDoPilotoPage() {
     ? await encontrarPilotoPorId(session.pilotoId)
     : undefined;
   const apresentacao = piloto ? await lerApresentacao(piloto.id) : null;
+  const campeonatoAtivo = await lerCampeonatoAtivo();
+  const minhasInscricoes =
+    piloto && campeonatoAtivo
+      ? (await lerInscricoesDoPiloto(piloto.id, campeonatoAtivo.id)).filter(
+          (i) => i.status !== "cancelada",
+        )
+      : [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -154,38 +162,59 @@ export default async function AreaDoPilotoPage() {
           </section>
 
           <section className="flex flex-col gap-3">
-            <h2 className="text-ink text-base font-semibold">
-              Minhas inscrições
-            </h2>
-            <div className="flex flex-col gap-2">
-              {inscricoes
-                .filter((i) => i.pilotoId === piloto.id)
-                .map((inscricao) => {
-                  const pagamento = pagamentos.find(
-                    (p) => p.inscricaoId === inscricao.id,
-                  );
-                  return (
-                    <Card key={inscricao.id}>
-                      <CardBody className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <StatusPill tone={toneParaStatus(inscricao.status)}>
-                            {inscricao.status}
-                          </StatusPill>
-                          <span className="text-ink-2 text-sm">
-                            Inscrição de {inscricao.criadaEm}
-                          </span>
-                        </div>
-                        {pagamento ? (
-                          <span className="text-ink font-display text-sm">
-                            {formatMoeda(pagamento.valorCentavos)} ·{" "}
-                            {pagamento.status}
-                          </span>
-                        ) : null}
-                      </CardBody>
-                    </Card>
-                  );
-                })}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-ink text-base font-semibold">
+                Minhas inscrições
+              </h2>
+              <Link
+                href="/inscricao"
+                className="text-orange-ink text-sm font-medium hover:underline"
+              >
+                Inscrever-me em uma etapa →
+              </Link>
             </div>
+            {minhasInscricoes.length === 0 ? (
+              <p className="text-ink-2 text-sm">
+                Você ainda não se inscreveu em nenhuma etapa.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {minhasInscricoes.map((i) => (
+                  <Card key={i.id}>
+                    <CardBody className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <StatusPill
+                          tone={
+                            i.status === "confirmada"
+                              ? "success"
+                              : i.status === "pendente"
+                                ? "warning"
+                                : "neutral"
+                          }
+                        >
+                          {i.status === "pendente"
+                            ? "aguardando pagamento"
+                            : i.status}
+                        </StatusPill>
+                        <span className="text-ink-2 text-sm">
+                          {i.etapaNome} ·{" "}
+                          {formatDataEHora({
+                            data: i.etapaData,
+                            hora: i.etapaHora,
+                          })}
+                        </span>
+                      </div>
+                      {i.pagamento && i.pagamento.valorCentavos > 0 ? (
+                        <span className="text-ink font-display text-sm">
+                          {formatMoeda(i.pagamento.valorCentavos)} ·{" "}
+                          {i.pagamento.status}
+                        </span>
+                      ) : null}
+                    </CardBody>
+                  </Card>
+                ))}
+              </div>
+            )}
           </section>
         </>
       )}

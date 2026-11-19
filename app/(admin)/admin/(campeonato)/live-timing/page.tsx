@@ -1,3 +1,4 @@
+import { AvisoEmDesenvolvimento } from "@/components/admin/aviso-em-desenvolvimento";
 import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
@@ -72,6 +73,7 @@ export default function AdminLiveTimingPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <AvisoEmDesenvolvimento />
       <PageHeader
         title="Live timing"
         description="Painel de cronometragem da bateria em andamento."

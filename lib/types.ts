@@ -41,6 +41,8 @@ export interface Etapa {
   data: string;
   // Horário da etapa, "HH:MM" (hora do relógio da pista).
   hora?: string;
+  // Valor da inscrição na etapa, em centavos (0 = gratuita).
+  valorInscricaoCentavos?: number;
   status: StatusEtapa;
   tracadoId?: string;
 }

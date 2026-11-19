@@ -937,4 +937,42 @@ export const MIGRACOES: Migracao[] = [
       on conflict do nothing;
     `,
   },
+  {
+    // Inscrições por etapa e pagamentos (e valor da inscrição na etapa). Estrutural: em produção o SQL
+    // é aplicado à mão (deploy/discloud/campeonato-inscricoes.sql, o mesmo texto).
+    id: "0025_campeonato_inscricoes",
+    estrutural: true,
+    sql: `
+      -- Valor da inscricao de cada etapa (0 = gratuita: a inscricao ja nasce confirmada).
+      alter table etapa
+        add column if not exists valor_inscricao_centavos integer not null default 0
+          check (valor_inscricao_centavos between 0 and 10000000);
+
+      create table if not exists inscricao (
+        id text primary key,
+        etapa_id text not null references etapa (id) on delete cascade,
+        piloto_id text not null references piloto (id) on delete cascade,
+        categoria_id text not null check (char_length(categoria_id) between 1 and 40),
+        status text not null default 'pendente'
+          check (status in ('pendente', 'confirmada', 'cancelada')),
+        criado_por text,
+        criada_em timestamptz not null default clock_timestamp(),
+        unique (etapa_id, piloto_id)
+      );
+      create index if not exists inscricao_piloto on inscricao (piloto_id);
+
+      -- Um pagamento por inscricao, registrado pelo admin (Pix, dinheiro ou cartao).
+      create table if not exists pagamento (
+        id text primary key,
+        inscricao_id text not null unique references inscricao (id) on delete cascade,
+        valor_centavos integer not null check (valor_centavos >= 0),
+        metodo text check (metodo in ('pix', 'dinheiro', 'cartao')),
+        status text not null default 'aguardando'
+          check (status in ('aguardando', 'confirmado', 'cancelado')),
+        registrado_por text,
+        criado_em timestamptz not null default clock_timestamp(),
+        confirmado_em timestamptz
+      );
+    `,
+  },
 ];

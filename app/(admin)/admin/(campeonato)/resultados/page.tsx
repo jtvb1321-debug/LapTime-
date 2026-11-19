@@ -1,3 +1,4 @@
+import { AvisoEmDesenvolvimento } from "@/components/admin/aviso-em-desenvolvimento";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { Avatar } from "@/components/ui/avatar";
@@ -94,6 +95,7 @@ const colunas: Coluna<Resultado>[] = [
 export default function AdminResultadosPage() {
   return (
     <div className="flex flex-col gap-6">
+      <AvisoEmDesenvolvimento />
       <PageHeader
         title="Resultados"
         description="Todos os resultados lançados na etapa atual."

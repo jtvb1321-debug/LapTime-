@@ -1,4 +1,3 @@
-import { AvisoEmDesenvolvimento } from "@/components/admin/aviso-em-desenvolvimento";
 import { SemPermissao } from "@/components/operacao/sem-permissao";
 import { getSession } from "@/lib/auth";
 
@@ -11,10 +10,5 @@ export default async function CampeonatoLayout({
 }) {
   const sessao = await getSession();
   if (sessao?.papel === "recepcao") return <SemPermissao />;
-  return (
-    <div className="flex flex-col gap-4">
-      <AvisoEmDesenvolvimento />
-      {children}
-    </div>
-  );
+  return <div className="flex flex-col gap-4">{children}</div>;
 }

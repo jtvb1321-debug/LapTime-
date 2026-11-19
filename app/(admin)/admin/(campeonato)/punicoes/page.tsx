@@ -1,3 +1,4 @@
+import { AvisoEmDesenvolvimento } from "@/components/admin/aviso-em-desenvolvimento";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { DataTable, type Coluna } from "@/components/ui/data-table";
@@ -30,6 +31,7 @@ const colunas: Coluna<Punicao>[] = [
 export default function AdminPunicoesPage() {
   return (
     <div className="flex flex-col gap-6">
+      <AvisoEmDesenvolvimento />
       <PageHeader
         title="Punições"
         description="Punições aplicadas pela fiscalização de prova."
