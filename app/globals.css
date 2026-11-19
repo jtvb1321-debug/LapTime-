@@ -799,3 +799,40 @@ body {
 :root[data-efeitos="reduzidos"] .gl-subir {
   animation: none;
 }
+
+/* Faixa de pilotos da home (components/site/pilotos-destaque.tsx): rola sozinha,
+   pausa ao passar o mouse e vira rolagem manual para quem prefere menos movimento. */
+@keyframes gl-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-50% - var(--gap, 0.75rem) / 2));
+  }
+}
+.gl-marquee {
+  --gap: 0.75rem;
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+.gl-marquee-faixa {
+  display: flex;
+  width: max-content;
+  gap: var(--gap);
+  animation: gl-marquee var(--duracao, 40s) linear infinite;
+}
+.gl-marquee:hover .gl-marquee-faixa,
+.gl-marquee:focus-within .gl-marquee-faixa {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-marquee {
+    overflow-x: auto;
+    mask-image: none;
+  }
+  .gl-marquee-faixa {
+    animation: none;
+  }
+  .gl-marquee-copia {
+    display: none;
+  }
+}

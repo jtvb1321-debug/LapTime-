@@ -164,13 +164,37 @@ export default async function PilotoPage({
         .join(" · ")
     : "";
 
+  // A posição no campeonato (e o destaque azul dela) só faz sentido quando o piloto está inscrito
+  // num campeonato cuja 1ª etapa já aconteceu (encerrada ou em andamento) ou já tem resultado.
+  const campeonatoIniciado =
+    linhas.length > 0 ||
+    inscricoes.some((i) => {
+      if (i.pilotoId !== piloto.id) return false;
+      const etapaInscrita = etapas.find((e) => e.id === i.etapaId);
+      if (!etapaInscrita) return false;
+      return etapas.some(
+        (e) =>
+          e.campeonatoId === etapaInscrita.campeonatoId &&
+          e.numero === 1 &&
+          (e.status === "encerrada" || e.status === "em_andamento"),
+      );
+    });
+
   const estatisticas = [
+    ...(campeonatoIniciado
+      ? [
+          {
+            label: "Posição",
+            valor: `${piloto.posicaoCampeonato}º`,
+            destaque: false,
+          },
+        ]
+      : []),
     {
-      label: "Posição",
-      valor: `${piloto.posicaoCampeonato}º`,
-      destaque: false,
+      label: "Pontos",
+      valor: String(piloto.pontos),
+      destaque: campeonatoIniciado,
     },
-    { label: "Pontos", valor: String(piloto.pontos), destaque: true },
     { label: "Vitórias", valor: String(piloto.vitorias), destaque: false },
     { label: "Pódios", valor: String(piloto.podios), destaque: false },
     { label: "Poles", valor: String(poles), destaque: false },
@@ -222,14 +246,16 @@ export default async function PilotoPage({
               ) : null}
             </div>
           </div>
-          <div className="shrink-0 rounded-lg border border-[#4cc9ff]/30 bg-[#4cc9ff]/10 px-3 py-2 text-center sm:px-5 sm:py-3">
-            <p className="text-[10px] tracking-wider text-[#9fb2d4] uppercase sm:text-xs">
-              Campeonato
-            </p>
-            <p className="font-display text-2xl leading-none font-bold text-[#4cc9ff] sm:text-4xl">
-              {piloto.posicaoCampeonato}º
-            </p>
-          </div>
+          {campeonatoIniciado ? (
+            <div className="shrink-0 rounded-lg border border-[#4cc9ff]/30 bg-[#4cc9ff]/10 px-3 py-2 text-center sm:px-5 sm:py-3">
+              <p className="text-[10px] tracking-wider text-[#9fb2d4] uppercase sm:text-xs">
+                Campeonato
+              </p>
+              <p className="font-display text-2xl leading-none font-bold text-[#4cc9ff] sm:text-4xl">
+                {piloto.posicaoCampeonato}º
+              </p>
+            </div>
+          ) : null}
         </div>
         {apresentacao ? (
           <div>
