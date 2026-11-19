@@ -7,9 +7,8 @@ import {
   rotuloDoStatus,
   TOM_DO_STATUS,
 } from "@/lib/etapa-destaque";
-import { formatData } from "@/lib/mock/data";
+import { formatDataEHora } from "@/lib/etapa-formato";
 import type { Etapa } from "@/lib/types";
-import { useMockStore } from "@/lib/use-mock-store";
 
 // Próxima etapa cadastrada, no destaque da página inicial. Lê da mesma fonte do calendário
 // (etapas criadas no painel ficam no navegador); sem etapa, mostra um estado vazio.
@@ -18,7 +17,7 @@ export function ProximaEtapaCard({
 }: {
   etapasIniciais: Etapa[];
 }) {
-  const [etapas] = useMockStore("gridlap:etapas", etapasIniciais);
+  const etapas = etapasIniciais;
   const etapa = escolherProximaEtapa(etapas);
 
   return (
@@ -40,7 +39,7 @@ export function ProximaEtapaCard({
           </p>
           <p className="text-ink-2 mt-1 text-sm">{etapa.cidade}</p>
           <p className="font-display text-orange-ink mt-3 text-xl font-semibold">
-            {formatData(etapa.data)}
+            {formatDataEHora(etapa)}
           </p>
           <Link
             href="/campeonato/calendario"

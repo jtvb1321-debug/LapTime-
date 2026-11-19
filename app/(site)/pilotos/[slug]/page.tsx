@@ -27,6 +27,8 @@ import {
 import { VerCardPiloto } from "@/components/pilotos/ver-card-piloto";
 import { lerApresentacao } from "@/lib/apresentacao-store";
 import { getSession } from "@/lib/auth";
+import { formatDataEHora } from "@/lib/etapa-formato";
+import { etapasDoCampeonatoAtivo } from "@/lib/etapas-store";
 import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
 import { encontrarPilotoPorSlug } from "@/lib/pilotos-store";
 
@@ -149,9 +151,11 @@ export default async function PilotoPage({
   }));
 
   // Próxima etapa cadastrada (ainda não encerrada), por data.
-  const proxima = etapas
+  const proxima = (await etapasDoCampeonatoAtivo())
     .filter((e) => e.status === "agendada" || e.status === "em_andamento")
-    .sort((a, b) => a.data.localeCompare(b.data))[0];
+    .sort((a, b) =>
+      `${a.data} ${a.hora ?? ""}`.localeCompare(`${b.data} ${b.hora ?? ""}`),
+    )[0];
   const inscricao = proxima
     ? inscricoes.find(
         (i) => i.pilotoId === piloto.id && i.etapaId === proxima.id,
@@ -315,7 +319,7 @@ export default async function PilotoPage({
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
             <div>
               <p className="text-ink font-medium">
-                {proxima.nome} · {formatData(proxima.data)}
+                {proxima.nome} · {formatDataEHora(proxima)}
               </p>
               {circuito ? (
                 <p className="text-sm text-[#9fb2d4]">{circuito}</p>

@@ -10,11 +10,19 @@ import {
   atualizarDados,
   criarCampeonato,
   definirCategorias,
+  definirPilotos,
   definirTracados,
   encerrarCampeonato,
   excluirCampeonato,
   removerLogo,
 } from "@/lib/campeonatos-store";
+import { salvarEnquadramentoDaImagem } from "@/lib/campeonato-imagem-store";
+import {
+  atualizarEtapa,
+  criarEtapa,
+  excluirEtapa,
+  type DadosDaEtapa,
+} from "@/lib/etapas-store";
 import { ErroNegocio } from "@/lib/operacao/erros";
 import type { AcaoState } from "@/lib/operacao-actions";
 import {
@@ -148,6 +156,79 @@ export async function salvarTracadosDoCampeonatoAction(
     () => definirTracados(campeonatoId, tracadoIds),
     [...CAMINHOS, `/admin/campeonatos/${campeonatoId}`, "/campeonato/tracados"],
     "Traçados salvos.",
+  );
+}
+
+export async function salvarEnquadramentoAction(
+  campeonatoId: string,
+  enquadramento: string,
+  focoY: number,
+): Promise<AcaoState> {
+  return executar(
+    "campeonato.imagem_enquadramento",
+    "campeonato",
+    campeonatoId,
+    { enquadramento, focoY },
+    () => salvarEnquadramentoDaImagem(campeonatoId, enquadramento, focoY),
+    [...CAMINHOS, `/admin/campeonatos/${campeonatoId}`],
+    "Enquadramento salvo.",
+  );
+}
+
+const CAMINHOS_ETAPA = [
+  "/",
+  "/campeonato/calendario",
+  "/campeonato/tracados",
+  "/admin/etapas",
+  "/admin/campeonatos",
+];
+
+export async function salvarEtapaAction(
+  campeonatoId: string,
+  etapaId: string | null,
+  dados: DadosDaEtapa,
+): Promise<AcaoState> {
+  return executar(
+    etapaId ? "etapa.editar" : "etapa.criar",
+    "etapa",
+    etapaId,
+    { campeonatoId, nome: dados.nome, data: dados.data, hora: dados.hora },
+    async () => {
+      if (etapaId) await atualizarEtapa(etapaId, dados);
+      else await criarEtapa(campeonatoId, dados);
+    },
+    [...CAMINHOS_ETAPA, `/admin/campeonatos/${campeonatoId}`],
+    etapaId ? "Etapa atualizada." : "Etapa adicionada ao calendário.",
+  );
+}
+
+export async function excluirEtapaAction(
+  campeonatoId: string,
+  etapaId: string,
+): Promise<AcaoState> {
+  return executar(
+    "etapa.excluir",
+    "etapa",
+    etapaId,
+    { campeonatoId },
+    () => excluirEtapa(etapaId),
+    [...CAMINHOS_ETAPA, `/admin/campeonatos/${campeonatoId}`],
+    "Etapa excluída.",
+  );
+}
+
+export async function salvarPilotosDoCampeonatoAction(
+  campeonatoId: string,
+  pilotoIds: string[],
+): Promise<AcaoState> {
+  return executar(
+    "campeonato.pilotos",
+    "campeonato",
+    campeonatoId,
+    { quantidade: pilotoIds.length },
+    () => definirPilotos(campeonatoId, pilotoIds),
+    [...CAMINHOS, `/admin/campeonatos/${campeonatoId}`],
+    "Pilotos do campeonato salvos.",
   );
 }
 

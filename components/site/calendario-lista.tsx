@@ -4,8 +4,7 @@ import { clsx } from "clsx";
 import { Card, CardBody } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { TracadoMiniatura } from "@/components/tracado/tracado-miniatura";
-import { formatData } from "@/lib/mock/data";
-import { useMockStore } from "@/lib/use-mock-store";
+import { formatDataEHora } from "@/lib/etapa-formato";
 import type { Etapa, Tracado } from "@/lib/types";
 
 const TONE = {
@@ -32,7 +31,7 @@ export function CalendarioLista({
   etapasIniciais: Etapa[];
   tracadosIniciais: Tracado[];
 }) {
-  const [etapas] = useMockStore("gridlap:etapas", etapasIniciais);
+  const etapas = etapasIniciais;
   const tracados = tracadosIniciais;
 
   if (etapas.length === 0) {
@@ -62,7 +61,7 @@ export function CalendarioLista({
                   />
                 ) : null}
                 <span className="text-ink-3 font-display text-sm">
-                  {formatData(etapa.data)}
+                  {formatDataEHora(etapa)}
                 </span>
                 <div>
                   <p className="text-ink font-medium">

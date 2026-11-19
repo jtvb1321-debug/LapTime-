@@ -12,14 +12,18 @@ import {
   criarCampeonatoAction,
   encerrarCampeonatoAction,
   excluirCampeonatoAction,
+  excluirEtapaAction,
   removerLogoAction,
   salvarCategoriasDoCampeonatoAction,
+  salvarEtapaAction,
+  salvarPilotosDoCampeonatoAction,
   salvarDadosAction,
   salvarTracadosDoCampeonatoAction,
 } from "@/lib/campeonatos-actions";
 import { LOGO_TAMANHO_MAXIMO_BYTES, reduzirLogo } from "@/lib/logo-reduzido";
 import type { AcaoState } from "@/lib/operacao-actions";
-import type { Tracado } from "@/lib/types";
+import { formatDataEHora } from "@/lib/etapa-formato";
+import type { Etapa, Tracado } from "@/lib/types";
 
 const INICIAL: AcaoState = {};
 
@@ -695,6 +699,427 @@ export function AtivacaoDoCampeonato({
           O botão de ativar libera quando todos os itens acima estiverem feitos.
         </p>
       ) : null}
+      <Mensagem estado={resultado} />
+    </div>
+  );
+}
+
+// ---- Etapas (calendário com data e horário) -----------------------------------------------
+
+const ROTULO_SITUACAO: Record<string, string> = {
+  agendada: "Agendada",
+  em_andamento: "Em andamento",
+  encerrada: "Encerrada",
+  cancelada: "Cancelada",
+};
+
+export function EtapasDoCampeonato({
+  campeonatoId,
+  etapas,
+  tracados,
+  podeEditar,
+}: {
+  campeonatoId: string;
+  etapas: Etapa[];
+  tracados: Tracado[];
+  podeEditar: boolean;
+}) {
+  const [editando, setEditando] = useState<string | "nova" | null>(null);
+  const [nome, setNome] = useState("");
+  const [kartodromo, setKartodromo] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [data, setData] = useState("");
+  const [hora, setHora] = useState("");
+  const [tracadoId, setTracadoId] = useState("");
+  const [situacao, setSituacao] = useState("agendada");
+  const [resultado, setResultado] = useState<AcaoState | null>(null);
+  const [pendente, iniciar] = useTransition();
+
+  function abrir(etapa?: Etapa) {
+    setResultado(null);
+    setEditando(etapa ? etapa.id : "nova");
+    setNome(etapa?.nome ?? `Etapa ${etapas.length + 1}`);
+    setKartodromo(etapa?.kartodromo ?? etapas.at(-1)?.kartodromo ?? "");
+    setCidade(etapa?.cidade ?? etapas.at(-1)?.cidade ?? "");
+    setData(etapa?.data ?? "");
+    setHora(etapa?.hora ?? "");
+    setTracadoId(etapa?.tracadoId ?? "");
+    setSituacao(etapa?.status ?? "agendada");
+  }
+
+  function salvar() {
+    iniciar(async () => {
+      const r = await salvarEtapaAction(
+        campeonatoId,
+        editando === "nova" ? null : editando,
+        {
+          nome,
+          kartodromo,
+          cidade,
+          data,
+          hora,
+          tracadoId: tracadoId || undefined,
+          status: situacao,
+        },
+      );
+      setResultado(r);
+      if (r.ok) setEditando(null);
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {etapas.length === 0 ? (
+        <p className="text-ink-2 text-sm">
+          Nenhuma etapa ainda. Adicione as etapas com data e horário: elas viram
+          o calendário da página inicial.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {etapas.map((e) => {
+            const tracado = tracados.find((t) => t.id === e.tracadoId);
+            return (
+              <li
+                key={e.id}
+                className="border-border bg-surface flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-ink text-sm font-semibold">
+                    {e.nome}{" "}
+                    <span className="text-ink-3 font-normal">
+                      · {ROTULO_SITUACAO[e.status] ?? e.status}
+                    </span>
+                  </p>
+                  <p className="text-orange-ink text-sm font-medium">
+                    {formatDataEHora(e)}
+                  </p>
+                  <p className="text-ink-2 text-xs">
+                    {e.kartodromo}, {e.cidade}
+                    {tracado ? ` · ${tracado.nome}` : ""}
+                  </p>
+                </div>
+                {podeEditar ? (
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => abrir(e)}
+                      className="text-orange-ink min-h-11 text-xs font-medium hover:underline md:min-h-0"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pendente}
+                      onClick={() => {
+                        if (!window.confirm(`Excluir a etapa ${e.nome}?`))
+                          return;
+                        iniciar(async () => {
+                          setResultado(
+                            await excluirEtapaAction(campeonatoId, e.id),
+                          );
+                        });
+                      }}
+                      className="text-danger min-h-11 text-xs font-medium hover:underline md:min-h-0"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {podeEditar && editando === null ? (
+        <div>
+          <Button variant="secondary" onClick={() => abrir()}>
+            Adicionar etapa
+          </Button>
+        </div>
+      ) : null}
+
+      {podeEditar && editando !== null ? (
+        <div className="border-border bg-surface flex max-w-2xl flex-col gap-3 rounded-lg border p-4">
+          <p className="text-ink text-sm font-semibold">
+            {editando === "nova" ? "Nova etapa" : "Editar etapa"}
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="etapa-nome"
+                className="text-ink text-sm font-medium"
+              >
+                Nome
+              </label>
+              <input
+                id="etapa-nome"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                maxLength={80}
+                className="campo"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="etapa-kartodromo"
+                className="text-ink text-sm font-medium"
+              >
+                Kartódromo
+              </label>
+              <input
+                id="etapa-kartodromo"
+                value={kartodromo}
+                onChange={(e) => setKartodromo(e.target.value)}
+                maxLength={80}
+                className="campo"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="etapa-cidade"
+                className="text-ink text-sm font-medium"
+              >
+                Cidade
+              </label>
+              <input
+                id="etapa-cidade"
+                value={cidade}
+                onChange={(e) => setCidade(e.target.value)}
+                maxLength={80}
+                className="campo"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="etapa-data"
+                  className="text-ink text-sm font-medium"
+                >
+                  Data
+                </label>
+                <input
+                  id="etapa-data"
+                  type="date"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                  className="campo"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="etapa-hora"
+                  className="text-ink text-sm font-medium"
+                >
+                  Horário
+                </label>
+                <input
+                  id="etapa-hora"
+                  type="time"
+                  value={hora}
+                  onChange={(e) => setHora(e.target.value)}
+                  className="campo"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="etapa-tracado"
+                className="text-ink text-sm font-medium"
+              >
+                Traçado (opcional)
+              </label>
+              <select
+                id="etapa-tracado"
+                value={tracadoId}
+                onChange={(e) => setTracadoId(e.target.value)}
+                className="campo"
+              >
+                <option value="">Sem traçado definido</option>
+                {tracados.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nome}
+                  </option>
+                ))}
+              </select>
+              {tracados.length === 0 ? (
+                <p className="text-ink-3 text-xs">
+                  Escolha os traçados do campeonato no passo anterior para poder
+                  vincular um aqui.
+                </p>
+              ) : null}
+            </div>
+            {editando !== "nova" ? (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="etapa-situacao"
+                  className="text-ink text-sm font-medium"
+                >
+                  Situação
+                </label>
+                <select
+                  id="etapa-situacao"
+                  value={situacao}
+                  onChange={(e) => setSituacao(e.target.value)}
+                  className="campo"
+                >
+                  {Object.entries(ROTULO_SITUACAO).map(([valor, rotulo]) => (
+                    <option key={valor} value={valor}>
+                      {rotulo}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+          </div>
+          <div className="flex gap-2">
+            <Button disabled={pendente} carregando={pendente} onClick={salvar}>
+              {editando === "nova" ? "Adicionar etapa" : "Salvar etapa"}
+            </Button>
+            <Button variant="ghost" onClick={() => setEditando(null)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : null}
+      <Mensagem estado={resultado} />
+    </div>
+  );
+}
+
+// ---- Pilotos do campeonato ----------------------------------------------------------------
+
+export function PilotosDoCampeonato({
+  campeonatoId,
+  pilotos,
+  escolhidos,
+  categoriasDoCampeonato,
+  podeEditar,
+}: {
+  campeonatoId: string;
+  pilotos: {
+    id: string;
+    nome: string;
+    numero: number;
+    categoriaId: string;
+    categoriaNome: string;
+  }[];
+  escolhidos: string[];
+  categoriasDoCampeonato: string[];
+  podeEditar: boolean;
+}) {
+  const [marcados, setMarcados] = useState<string[]>(escolhidos);
+  const [resultado, setResultado] = useState<AcaoState | null>(null);
+  const [pendente, iniciar] = useTransition();
+
+  function alternar(id: string) {
+    setResultado(null);
+    setMarcados((atual) =>
+      atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id],
+    );
+  }
+
+  if (pilotos.length === 0) {
+    return (
+      <p className="text-ink-2 text-sm">
+        Ainda não há pilotos no sistema. Quem se cadastrar entra automaticamente
+        neste campeonato.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-ink-2 text-sm">
+        Todos os pilotos cadastrados entram no campeonato. Desmarque quem não
+        vai participar. Quem se cadastrar depois também entra automaticamente.
+      </p>
+      {podeEditar ? (
+        <div className="flex gap-3 text-xs">
+          <button
+            type="button"
+            onClick={() => setMarcados(pilotos.map((p) => p.id))}
+            className="text-orange-ink font-medium hover:underline"
+          >
+            Marcar todos
+          </button>
+          <button
+            type="button"
+            onClick={() => setMarcados([])}
+            className="text-orange-ink font-medium hover:underline"
+          >
+            Desmarcar todos
+          </button>
+        </div>
+      ) : null}
+      <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {pilotos.map((p) => {
+          const marcado = marcados.includes(p.id);
+          const foraDasCategorias =
+            categoriasDoCampeonato.length > 0 &&
+            !categoriasDoCampeonato.includes(p.categoriaId);
+          return (
+            <li key={p.id}>
+              <label
+                className={`bg-surface flex items-center gap-3 rounded-lg border p-2.5 ${
+                  marcado
+                    ? "border-orange ring-orange/40 ring-1"
+                    : "border-border"
+                } ${podeEditar ? "cursor-pointer" : "cursor-default"}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={marcado}
+                  disabled={!podeEditar}
+                  onChange={() => alternar(p.id)}
+                  className="size-4 shrink-0"
+                />
+                <span className="font-display text-ink-3 w-7 shrink-0 text-right text-sm">
+                  {p.numero}
+                </span>
+                <span className="min-w-0">
+                  <span className="text-ink block truncate text-sm font-medium">
+                    {p.nome}
+                  </span>
+                  <span className="block text-xs">
+                    <NomeCategoria
+                      categoriaId={p.categoriaId}
+                      className="inline-block rounded bg-[#0c1630] px-1.5"
+                    >
+                      {p.categoriaNome}
+                    </NomeCategoria>
+                    {foraDasCategorias ? (
+                      <span className="text-warning ml-1">
+                        · categoria fora do campeonato
+                      </span>
+                    ) : null}
+                  </span>
+                </span>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-ink-2 text-sm font-medium">
+          {marcados.length} de {pilotos.length} pilotos
+        </span>
+        {podeEditar ? (
+          <Button
+            disabled={pendente}
+            carregando={pendente}
+            onClick={() =>
+              iniciar(async () => {
+                setResultado(
+                  await salvarPilotosDoCampeonatoAction(campeonatoId, marcados),
+                );
+              })
+            }
+          >
+            Salvar pilotos
+          </Button>
+        ) : null}
+      </div>
       <Mensagem estado={resultado} />
     </div>
   );

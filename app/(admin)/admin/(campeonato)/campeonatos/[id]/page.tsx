@@ -6,7 +6,9 @@ import {
   DadosDoCampeonatoForm,
   EscolherCategorias,
   EscolherTracados,
+  EtapasDoCampeonato,
   LogosDoCampeonato,
+  PilotosDoCampeonato,
 } from "@/components/admin/campeonato-passos";
 import { ImagemCampeonato } from "@/components/admin/imagem-campeonato";
 import { PageHeader } from "@/components/ui/page-header";
@@ -16,13 +18,16 @@ import { lerImagemDoCampeonato } from "@/lib/campeonato-imagem-store";
 import {
   lerCampeonatoPorId,
   MINIMO_DE_CATEGORIAS,
+  MINIMO_DE_ETAPAS,
   MINIMO_DE_LOGOS,
   MINIMO_DE_TRACADOS,
   prontidaoDe,
 } from "@/lib/campeonatos-store";
 import { aplicarAjustesDeCategoria } from "@/lib/categorias-store";
 import { categorias } from "@/lib/mock/data";
+import { lerEtapasDoCampeonato } from "@/lib/etapas-store";
 import { pode } from "@/lib/permissoes";
+import { lerPilotos } from "@/lib/pilotos-store";
 import { lerTracados } from "@/lib/tracados-store";
 
 export const metadata: Metadata = { title: "Campeonato" };
@@ -73,12 +78,15 @@ export default async function CampeonatoPage({
 }) {
   const { id } = await params;
   await aplicarAjustesDeCategoria();
-  const [campeonato, sessao, tracados, imagem] = await Promise.all([
-    lerCampeonatoPorId(id),
-    getSession(),
-    lerTracados(),
-    lerImagemDoCampeonato(id).catch(() => null),
-  ]);
+  const [campeonato, sessao, tracados, imagem, etapas, pilotos] =
+    await Promise.all([
+      lerCampeonatoPorId(id),
+      getSession(),
+      lerTracados(),
+      lerImagemDoCampeonato(id).catch(() => null),
+      lerEtapasDoCampeonato(id),
+      lerPilotos(),
+    ]);
   if (!campeonato) notFound();
   const podeEditar = Boolean(
     sessao && pode(sessao.papel, "cadastro.gerenciar"),
@@ -132,6 +140,8 @@ export default async function CampeonatoPage({
           existente={Boolean(imagem)}
           altAtual={imagem?.alt ?? ""}
           versao={imagem?.atualizadoEm.getTime() ?? 0}
+          enquadramento={imagem?.enquadramento ?? "inteira"}
+          focoY={imagem?.focoY ?? 50}
           podeEditar={podeEditar}
         />
       </Passo>
@@ -165,7 +175,23 @@ export default async function CampeonatoPage({
         />
       </Passo>
 
-      <Passo numero={5} titulo="Logos dos patrocinadores" feito={p.logos}>
+      <Passo
+        numero={5}
+        titulo="Etapas (calendário com data e horário)"
+        feito={p.etapas}
+      >
+        <EtapasDoCampeonato
+          key={etapas.map((e) => e.id + e.data + e.hora + e.status).join(",")}
+          campeonatoId={campeonato.id}
+          etapas={etapas}
+          tracados={tracados.filter((t) =>
+            campeonato.tracadoIds.includes(t.id),
+          )}
+          podeEditar={podeEditar}
+        />
+      </Passo>
+
+      <Passo numero={6} titulo="Logos dos patrocinadores" feito={p.logos}>
         <LogosDoCampeonato
           campeonatoId={campeonato.id}
           logos={campeonato.logos}
@@ -174,7 +200,29 @@ export default async function CampeonatoPage({
       </Passo>
 
       <Passo
-        numero={6}
+        numero={7}
+        titulo="Pilotos do campeonato"
+        feito={campeonato.pilotoIds.length > 0}
+      >
+        <PilotosDoCampeonato
+          key={campeonato.pilotoIds.join(",")}
+          campeonatoId={campeonato.id}
+          pilotos={pilotos.map((pi) => ({
+            id: pi.id,
+            nome: pi.apelido?.trim() || pi.nome,
+            numero: pi.numero,
+            categoriaId: pi.categoriaId,
+            categoriaNome:
+              categorias.find((c) => c.id === pi.categoriaId)?.nome ?? "",
+          }))}
+          escolhidos={campeonato.pilotoIds}
+          categoriasDoCampeonato={campeonato.categoriaIds}
+          podeEditar={podeEditar}
+        />
+      </Passo>
+
+      <Passo
+        numero={8}
         titulo={campeonato.status === "ativo" ? "Campeonato ativo" : "Ativar"}
         feito={campeonato.status === "ativo"}
       >
@@ -188,6 +236,10 @@ export default async function CampeonatoPage({
             {
               rotulo: `Pelo menos ${MINIMO_DE_CATEGORIAS} categoria escolhida (${campeonato.categoriaIds.length})`,
               feito: p.categorias,
+            },
+            {
+              rotulo: `Pelo menos ${MINIMO_DE_ETAPAS} etapa no calendário (${campeonato.etapasContagem})`,
+              feito: p.etapas,
             },
             {
               rotulo: `Pelo menos ${MINIMO_DE_TRACADOS} traçados escolhidos (${campeonato.tracadoIds.length})`,

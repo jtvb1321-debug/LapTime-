@@ -9,9 +9,9 @@ import {
   rotuloDoStatus,
   TOM_DO_STATUS,
 } from "@/lib/etapa-destaque";
+import { formatHora } from "@/lib/etapa-formato";
 import { formatData } from "@/lib/mock/data";
 import type { Etapa } from "@/lib/types";
-import { useMockStore } from "@/lib/use-mock-store";
 
 const DIAS = [
   { curto: "D", cheio: "domingo" },
@@ -44,7 +44,7 @@ export function CalendarioEtapas({
 }: {
   etapasIniciais: Etapa[];
 }) {
-  const [etapas] = useMockStore("gridlap:etapas", etapasIniciais);
+  const etapas = etapasIniciais;
   const proxima = escolherProximaEtapa(etapas);
   const base = proxima ? partes(proxima.data) : null;
   const hoje = new Date();
@@ -218,6 +218,16 @@ export function CalendarioEtapas({
                     {formatData(selecionada.data)}
                   </dd>
                 </div>
+                {selecionada.hora ? (
+                  <div>
+                    <dt className="text-ink-3 text-xs tracking-wide uppercase">
+                      Horário
+                    </dt>
+                    <dd className="font-display text-orange-ink text-xl font-semibold">
+                      {formatHora(selecionada.hora)}
+                    </dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt className="text-ink-3 text-xs tracking-wide uppercase">
                     Local

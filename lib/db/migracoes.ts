@@ -882,4 +882,59 @@ export const MIGRACOES: Migracao[] = [
       create index if not exists campeonato_logo_campeonato on campeonato_logo (campeonato_id, ordem);
     `,
   },
+  {
+    // Enquadramento da imagem do campeonato: inteira (padrão, sem cortes) ou preenchendo a faixa
+    // com um ponto de foco vertical. Estrutural: em produção o SQL é aplicado à mão
+    // (deploy/discloud/campeonato-imagem-enquadramento.sql, o mesmo texto).
+    id: "0023_campeonato_imagem_enquadramento",
+    estrutural: true,
+    sql: `
+      alter table campeonato_imagem
+        add column if not exists enquadramento text not null default 'inteira'
+          check (enquadramento in ('inteira', 'preencher')),
+        add column if not exists foco_y smallint not null default 50
+          check (foco_y between 0 and 100);
+    `,
+  },
+  {
+    // Etapas do campeonato (data e horário) e pilotos de cada campeonato. Estrutural: em produção o
+    // SQL é aplicado à mão (deploy/discloud/campeonato-etapas-pilotos.sql, o mesmo texto).
+    id: "0024_campeonato_etapas_pilotos",
+    estrutural: true,
+    sql: `
+      create table if not exists etapa (
+        id text primary key,
+        campeonato_id text not null references campeonato (id) on delete cascade,
+        numero integer not null check (numero between 1 and 99),
+        nome text not null check (char_length(nome) between 2 and 80),
+        kartodromo text not null check (char_length(kartodromo) between 2 and 80),
+        cidade text not null check (char_length(cidade) between 2 and 80),
+        data date not null,
+        hora time not null,
+        status text not null default 'agendada'
+          check (status in ('agendada', 'em_andamento', 'encerrada', 'cancelada')),
+        tracado_id text references tracado (id) on delete set null,
+        criado_em timestamptz not null default clock_timestamp(),
+        unique (campeonato_id, numero)
+      );
+      create index if not exists etapa_campeonato_data on etapa (campeonato_id, data, hora);
+
+      -- Pilotos que fazem parte de cada campeonato. Ao criar o campeonato entram todos os pilotos que
+      -- ja estao no sistema; depois o admin ajusta.
+      create table if not exists campeonato_piloto (
+        campeonato_id text not null references campeonato (id) on delete cascade,
+        piloto_id text not null references piloto (id) on delete cascade,
+        primary key (campeonato_id, piloto_id)
+      );
+      create index if not exists campeonato_piloto_piloto on campeonato_piloto (piloto_id);
+
+      -- Campeonatos que ja existiam e ainda nao tem nenhum piloto vinculado recebem todos os pilotos do
+      -- sistema (quem ja foi ajustado a mao nao e mexido).
+      insert into campeonato_piloto (campeonato_id, piloto_id)
+      select c.id, p.id
+        from campeonato c cross join piloto p
+       where not exists (select 1 from campeonato_piloto cp where cp.campeonato_id = c.id)
+      on conflict do nothing;
+    `,
+  },
 ];

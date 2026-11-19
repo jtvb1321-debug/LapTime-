@@ -3,12 +3,16 @@ import { consultar, transacao } from "@/lib/db/conexao";
 import { validarImagem, type MimeImagem } from "@/lib/campeonato-imagem";
 import { ErroNegocio } from "@/lib/operacao/erros";
 
+export type Enquadramento = "inteira" | "preencher";
+
 export interface ImagemDoCampeonato {
   campeonatoId: string;
   mime: MimeImagem;
   alt: string;
   tamanho: number;
   atualizadoEm: Date;
+  enquadramento: Enquadramento;
+  focoY: number;
 }
 
 async function campeonatoValido(id: string) {
@@ -20,22 +24,37 @@ async function campeonatoValido(id: string) {
   return c;
 }
 
-// Só metadados (a imagem em si sai por /api/campeonatos/[id]/imagem).
+interface LinhaImagem {
+  campeonato_id: string;
+  tipo_mime: MimeImagem;
+  texto_alternativo: string;
+  tamanho: number;
+  atualizado_em: Date;
+  enquadramento?: Enquadramento;
+  foco_y?: number;
+}
+
+// Só metadados (a imagem em si sai por /api/campeonatos/[id]/imagem). Se as colunas de
+// enquadramento ainda não existirem no banco, vale o padrão: imagem inteira.
 export async function lerImagemDoCampeonato(
   campeonatoId: string,
 ): Promise<ImagemDoCampeonato | null> {
-  const [l] = await consultar<{
-    campeonato_id: string;
-    tipo_mime: MimeImagem;
-    texto_alternativo: string;
-    tamanho: number;
-    atualizado_em: Date;
-  }>(
-    `select campeonato_id, tipo_mime, texto_alternativo,
-            octet_length(dados) as tamanho, atualizado_em
-       from campeonato_imagem where campeonato_id = $1`,
-    [campeonatoId],
-  );
+  let l: LinhaImagem | undefined;
+  try {
+    [l] = await consultar<LinhaImagem>(
+      `select campeonato_id, tipo_mime, texto_alternativo,
+              octet_length(dados) as tamanho, atualizado_em, enquadramento, foco_y
+         from campeonato_imagem where campeonato_id = $1`,
+      [campeonatoId],
+    );
+  } catch {
+    [l] = await consultar<LinhaImagem>(
+      `select campeonato_id, tipo_mime, texto_alternativo,
+              octet_length(dados) as tamanho, atualizado_em
+         from campeonato_imagem where campeonato_id = $1`,
+      [campeonatoId],
+    );
+  }
   return l
     ? {
         campeonatoId: l.campeonato_id,
@@ -43,8 +62,37 @@ export async function lerImagemDoCampeonato(
         alt: l.texto_alternativo,
         tamanho: Number(l.tamanho),
         atualizadoEm: l.atualizado_em,
+        enquadramento: l.enquadramento ?? "inteira",
+        focoY: l.foco_y ?? 50,
       }
     : null;
+}
+
+export async function salvarEnquadramentoDaImagem(
+  campeonatoId: string,
+  enquadramento: string,
+  focoY: number,
+): Promise<void> {
+  if (enquadramento !== "inteira" && enquadramento !== "preencher") {
+    throw new ErroNegocio("Enquadramento inválido.");
+  }
+  if (!Number.isFinite(focoY)) throw new ErroNegocio("Posição inválida.");
+  const foco = Math.min(100, Math.max(0, Math.round(focoY)));
+  let r;
+  try {
+    r = await consultar(
+      `update campeonato_imagem set enquadramento = $2, foco_y = $3
+        where campeonato_id = $1 returning campeonato_id`,
+      [campeonatoId, enquadramento, foco],
+    );
+  } catch {
+    throw new ErroNegocio(
+      "O ajuste de enquadramento ainda não está disponível neste banco (falta aplicar o SQL da atualização).",
+    );
+  }
+  if (r.length === 0) {
+    throw new ErroNegocio("Envie a imagem antes de ajustar o enquadramento.");
+  }
 }
 
 export async function lerBytesDaImagem(campeonatoId: string) {

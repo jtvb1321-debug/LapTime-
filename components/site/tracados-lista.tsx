@@ -9,7 +9,6 @@ import { TracadoMiniatura } from "@/components/tracado/tracado-miniatura";
 import { VisualizadorTracado } from "@/components/tracado/visualizador-tracado";
 import {
   baterias,
-  formatData,
   formatGap,
   formatTempoVolta,
   getCategoriaById,
@@ -21,7 +20,7 @@ import {
   nomeExibicaoPiloto,
   substituirDadosDeCorrida,
 } from "@/lib/mock/data";
-import { useMockStore } from "@/lib/use-mock-store";
+import { formatDataEHora } from "@/lib/etapa-formato";
 import type { Bateria, Etapa, Piloto, Resultado, Tracado } from "@/lib/types";
 
 // Client component pelo mesmo motivo do calendário: traçados cadastrados no
@@ -49,7 +48,7 @@ export function TracadosLista({
   }
 
   const tracados = tracadosIniciais;
-  const [etapas] = useMockStore("gridlap:etapas", etapasIniciais);
+  const etapas = etapasIniciais;
   const [tracadoSelecionado, setTracadoSelecionado] = useState<Tracado | null>(
     null,
   );
@@ -294,7 +293,7 @@ export function TracadosLista({
                             {etapa.nome}
                           </span>
                           <span className="text-ink-2 font-display text-sm font-semibold">
-                            {formatData(etapa.data)}
+                            {formatDataEHora(etapa)}
                           </span>
                         </div>
                       ))}
@@ -390,7 +389,7 @@ export function TracadosLista({
                               </p>
                             </div>
                             <span className="text-ink-2 font-display shrink-0 text-sm font-semibold">
-                              {formatData(etapa.data)}
+                              {formatDataEHora(etapa)}
                             </span>
                           </div>
                         );

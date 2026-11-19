@@ -89,6 +89,9 @@ export default async function AdminCampeonatosPage() {
                       {p.categorias ? "✓" : "○"} Categorias{" "}
                       {c.categoriaIds.length}
                     </li>
+                    <li className={p.etapas ? "text-success" : ""}>
+                      {p.etapas ? "✓" : "○"} Etapas {c.etapasContagem}
+                    </li>
                     <li className={p.tracados ? "text-success" : ""}>
                       {p.tracados ? "✓" : "○"} Traçados {c.tracadoIds.length}/
                       {MINIMO_DE_TRACADOS}

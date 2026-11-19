@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { PoolClient } from "pg";
 import { consultar, transacao } from "@/lib/db/conexao";
 import { categoriaExiste } from "@/lib/categorias-store";
 import { ErroNegocio } from "@/lib/operacao/erros";
@@ -7,6 +8,7 @@ import type { Campeonato } from "@/lib/types";
 // Campeonatos no banco (antes ficavam só no navegador de quem cadastrou). O fluxo é: dados →
 // imagem → traçados (no mínimo 2) → logos de patrocinadores (no mínimo 1) → ativar. Só um
 // campeonato fica ativo por vez, e só dá para ativar com tudo pronto.
+export const MINIMO_DE_ETAPAS = 1;
 export const MINIMO_DE_CATEGORIAS = 1;
 export const MINIMO_DE_TRACADOS = 2;
 export const MINIMO_DE_LOGOS = 1;
@@ -18,6 +20,8 @@ export interface CampeonatoCompleto extends Campeonato {
   temImagem: boolean;
   categoriaIds: string[];
   tracadoIds: string[];
+  pilotoIds: string[];
+  etapasContagem: number;
   logos: LogoDoCampeonato[];
 }
 
@@ -30,6 +34,7 @@ export interface LogoDoCampeonato {
 export interface Prontidao {
   imagem: boolean;
   categorias: boolean;
+  etapas: boolean;
   tracados: boolean;
   logos: boolean;
   pronto: boolean;
@@ -58,18 +63,21 @@ export function prontidaoDe(c: {
   temImagem: boolean;
   categoriaIds: string[];
   tracadoIds: string[];
+  etapasContagem: number;
   logos: unknown[];
 }): Prontidao {
   const imagem = c.temImagem;
   const categorias = c.categoriaIds.length >= MINIMO_DE_CATEGORIAS;
+  const etapas = c.etapasContagem >= MINIMO_DE_ETAPAS;
   const tracados = c.tracadoIds.length >= MINIMO_DE_TRACADOS;
   const logos = c.logos.length >= MINIMO_DE_LOGOS;
   return {
     imagem,
     categorias,
+    etapas,
     tracados,
     logos,
-    pronto: imagem && categorias && tracados && logos,
+    pronto: imagem && categorias && etapas && tracados && logos,
   };
 }
 
@@ -78,28 +86,39 @@ async function completar(
 ): Promise<CampeonatoCompleto[]> {
   if (linhas.length === 0) return [];
   const ids = linhas.map((l) => l.id);
-  const [categoriasVinc, vinculos, logos] = await Promise.all([
-    consultar<{ campeonato_id: string; categoria_id: string }>(
-      `select campeonato_id, categoria_id from campeonato_categoria
+  const [pilotosVinc, etapasConta, categoriasVinc, vinculos, logos] =
+    await Promise.all([
+      consultar<{ campeonato_id: string; piloto_id: string }>(
+        `select campeonato_id, piloto_id from campeonato_piloto
+        where campeonato_id = any($1)`,
+        [ids],
+      ),
+      consultar<{ campeonato_id: string; n: number }>(
+        `select campeonato_id, count(*)::int as n from etapa
+        where campeonato_id = any($1) group by campeonato_id`,
+        [ids],
+      ),
+      consultar<{ campeonato_id: string; categoria_id: string }>(
+        `select campeonato_id, categoria_id from campeonato_categoria
         where campeonato_id = any($1) order by categoria_id`,
-      [ids],
-    ),
-    consultar<{ campeonato_id: string; tracado_id: string }>(
-      `select campeonato_id, tracado_id from campeonato_tracado
+        [ids],
+      ),
+      consultar<{ campeonato_id: string; tracado_id: string }>(
+        `select campeonato_id, tracado_id from campeonato_tracado
         where campeonato_id = any($1) order by ordem, tracado_id`,
-      [ids],
-    ),
-    consultar<{
-      id: string;
-      campeonato_id: string;
-      nome: string;
-      logo: string;
-    }>(
-      `select id, campeonato_id, nome, logo from campeonato_logo
+        [ids],
+      ),
+      consultar<{
+        id: string;
+        campeonato_id: string;
+        nome: string;
+        logo: string;
+      }>(
+        `select id, campeonato_id, nome, logo from campeonato_logo
         where campeonato_id = any($1) order by ordem, criado_em, id`,
-      [ids],
-    ),
-  ]);
+        [ids],
+      ),
+    ]);
   return linhas.map((l) => ({
     id: l.id,
     nome: l.nome,
@@ -109,6 +128,10 @@ async function completar(
     ativo: l.ativo,
     status: statusDe(l),
     temImagem: l.tem_imagem,
+    pilotoIds: pilotosVinc
+      .filter((v) => v.campeonato_id === l.id)
+      .map((v) => v.piloto_id),
+    etapasContagem: etapasConta.find((e) => e.campeonato_id === l.id)?.n ?? 0,
     categoriaIds: categoriasVinc
       .filter((v) => v.campeonato_id === l.id)
       .map((v) => v.categoria_id),
@@ -225,7 +248,66 @@ export async function criarCampeonato(
       ],
     );
   }
+  // De início, todos os pilotos que já estão no sistema entram no campeonato.
+  await consultar(
+    `insert into campeonato_piloto (campeonato_id, piloto_id)
+     select $1, id from piloto on conflict do nothing`,
+    [id],
+  );
   return id;
+}
+
+// Piloto que acabou de se cadastrar entra nos campeonatos que ainda não terminaram. Roda dentro
+// da transação do cadastro; se a tabela ainda não existir, o cadastro não é afetado.
+export async function incluirPilotoNosCampeonatos(
+  cliente: PoolClient,
+  pilotoId: string,
+): Promise<void> {
+  await cliente.query("savepoint incluir_piloto_campeonato");
+  try {
+    await cliente.query(
+      `insert into campeonato_piloto (campeonato_id, piloto_id)
+       select id, $1 from campeonato where encerrado_em is null
+       on conflict do nothing`,
+      [pilotoId],
+    );
+    await cliente.query("release savepoint incluir_piloto_campeonato");
+  } catch {
+    await cliente.query("rollback to savepoint incluir_piloto_campeonato");
+  }
+}
+
+export async function definirPilotos(
+  id: string,
+  pilotoIds: string[],
+): Promise<void> {
+  const unicos = [...new Set(pilotoIds)];
+  await transacao(async (cliente) => {
+    const camp = await cliente.query("select 1 from campeonato where id = $1", [
+      id,
+    ]);
+    if (camp.rowCount === 0)
+      throw new ErroNegocio("Campeonato não encontrado.");
+    if (unicos.length > 0) {
+      const ok = await cliente.query(
+        "select id from piloto where id = any($1)",
+        [unicos],
+      );
+      if (ok.rowCount !== unicos.length) {
+        throw new ErroNegocio("Um dos pilotos escolhidos não existe mais.");
+      }
+    }
+    await cliente.query(
+      "delete from campeonato_piloto where campeonato_id = $1",
+      [id],
+    );
+    for (const pilotoId of unicos) {
+      await cliente.query(
+        "insert into campeonato_piloto (campeonato_id, piloto_id) values ($1, $2)",
+        [id, pilotoId],
+      );
+    }
+  });
 }
 
 export async function atualizarDados(
@@ -380,6 +462,7 @@ export async function ativarCampeonato(id: string): Promise<void> {
     const falta = [
       !p.imagem && "a imagem do campeonato",
       !p.categorias && `pelo menos ${MINIMO_DE_CATEGORIAS} categoria`,
+      !p.etapas && `pelo menos ${MINIMO_DE_ETAPAS} etapa no calendário`,
       !p.tracados && `pelo menos ${MINIMO_DE_TRACADOS} traçados`,
       !p.logos && `pelo menos ${MINIMO_DE_LOGOS} logo de patrocinador`,
     ].filter(Boolean);

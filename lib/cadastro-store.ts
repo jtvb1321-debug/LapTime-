@@ -1,5 +1,6 @@
 import { transacao } from "@/lib/db/conexao";
 import { inserirPerfil } from "@/lib/perfis-store";
+import { incluirPilotoNosCampeonatos } from "@/lib/campeonatos-store";
 import { inserirPiloto } from "@/lib/pilotos-store";
 import type { Perfil, Piloto } from "@/lib/types";
 
@@ -11,6 +12,7 @@ export async function cadastrarPilotoComPerfil(
 ): Promise<void> {
   await transacao(async (cliente) => {
     await inserirPiloto(cliente, piloto);
+    await incluirPilotoNosCampeonatos(cliente, piloto.id);
     await inserirPerfil(cliente, perfil);
   });
 }

@@ -39,6 +39,8 @@ export interface Etapa {
   kartodromo: string;
   cidade: string;
   data: string;
+  // Horário da etapa, "HH:MM" (hora do relógio da pista).
+  hora?: string;
   status: StatusEtapa;
   tracadoId?: string;
 }

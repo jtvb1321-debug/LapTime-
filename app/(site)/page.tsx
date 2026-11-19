@@ -2,13 +2,15 @@ import { aplicarAjustesDeCategoria } from "@/lib/categorias-store";
 import Link from "next/link";
 import { AberturaGridLap } from "@/components/site/abertura-gridlap";
 import { CalendarioEtapas } from "@/components/site/calendario-etapas";
+import { CapaDoCampeonato } from "@/components/ui/capa-do-campeonato";
 import { HeroHome } from "@/components/site/hero-home";
 import { PilotosDestaque } from "@/components/site/pilotos-destaque";
 import { MapaDoCircuito } from "@/components/site/mapa-do-circuito";
 import { ProximaEtapaCard } from "@/components/site/proxima-etapa-card";
 import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
+import { etapasDoCampeonatoAtivo } from "@/lib/etapas-store";
 import { lerImagemDoCampeonato } from "@/lib/campeonato-imagem-store";
-import { categorias, etapas } from "@/lib/mock/data";
+import { categorias } from "@/lib/mock/data";
 import { lerPilotos } from "@/lib/pilotos-store";
 
 function TituloDaSecao({
@@ -44,9 +46,10 @@ function TituloDaSecao({
 
 export default async function HomePage() {
   await aplicarAjustesDeCategoria();
-  const [campeonato, pilotos] = await Promise.all([
+  const [campeonato, pilotos, etapas] = await Promise.all([
     lerCampeonatoAtivo(),
     lerPilotos(),
+    etapasDoCampeonatoAtivo(),
   ]);
   const imagemDoCampeonato = campeonato
     ? await lerImagemDoCampeonato(campeonato.id).catch(() => null)
@@ -66,11 +69,11 @@ export default async function HomePage() {
 
       {campeonato && imagemDoCampeonato ? (
         <section aria-label={`Apresentação: ${campeonato.nome}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <CapaDoCampeonato
             src={`/api/campeonatos/${encodeURIComponent(campeonato.id)}/imagem?v=${imagemDoCampeonato.atualizadoEm.getTime()}`}
             alt={imagemDoCampeonato.alt}
-            className="border-border aspect-[16/7] w-full rounded-lg border object-cover"
+            enquadramento={imagemDoCampeonato.enquadramento}
+            focoY={imagemDoCampeonato.focoY}
           />
         </section>
       ) : null}
