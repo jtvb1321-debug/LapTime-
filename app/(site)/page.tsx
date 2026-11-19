@@ -1,3 +1,4 @@
+import { aplicarAjustesDeCategoria } from "@/lib/categorias-store";
 import Link from "next/link";
 import { AberturaGridLap } from "@/components/site/abertura-gridlap";
 import { CalendarioEtapas } from "@/components/site/calendario-etapas";
@@ -41,6 +42,7 @@ function TituloDaSecao({
 }
 
 export default async function HomePage() {
+  await aplicarAjustesDeCategoria();
   const [imagemDoCampeonato, pilotos] = await Promise.all([
     campeonato
       ? lerImagemDoCampeonato(campeonato.id).catch(() => null)

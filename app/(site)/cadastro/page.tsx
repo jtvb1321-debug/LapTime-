@@ -1,10 +1,12 @@
+import { aplicarAjustesDeCategoria } from "@/lib/categorias-store";
 import type { Metadata } from "next";
 import { CadastroForm } from "@/components/site/cadastro-form";
 import { categorias } from "@/lib/mock/data";
 
 export const metadata: Metadata = { title: "Cadastro de piloto" };
 
-export default function CadastroPage() {
+export default async function CadastroPage() {
+  await aplicarAjustesDeCategoria();
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-6">
       <div>

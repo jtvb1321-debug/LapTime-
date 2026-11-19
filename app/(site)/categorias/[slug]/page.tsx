@@ -1,3 +1,4 @@
+import { aplicarAjustesDeCategoria } from "@/lib/categorias-store";
 import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -27,6 +28,7 @@ export default async function CategoriaPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  await aplicarAjustesDeCategoria();
   const { slug } = await params;
   const categoria = categorias.find((c) => c.slug === slug);
   if (!categoria) notFound();

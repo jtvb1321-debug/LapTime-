@@ -1,3 +1,4 @@
+import { aplicarAjustesDeCategoria } from "@/lib/categorias-store";
 import { BandeiraUf } from "@/components/ui/bandeira-uf";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -66,6 +67,7 @@ export default async function PilotoPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  await aplicarAjustesDeCategoria();
   const { slug } = await params;
   const piloto = await encontrarPilotoPorSlug(slug);
   if (!piloto) notFound();

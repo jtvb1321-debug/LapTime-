@@ -806,4 +806,21 @@ export const MIGRACOES: Migracao[] = [
       drop index if exists piloto_numero;
     `,
   },
+  {
+    // Ajustes das categorias feitos no painel (nome, descrição e peso mínimo), por cima dos valores
+    // padrão do código. Estrutural: em produção o SQL é aplicado à mão
+    // (deploy/discloud/categoria-ajuste.sql, o mesmo texto). O código funciona sem a tabela.
+    id: "0021_categoria_ajuste",
+    estrutural: true,
+    sql: `
+      create table if not exists categoria_ajuste (
+        id text primary key,
+        nome text not null check (char_length(nome) between 2 and 40),
+        descricao text not null check (char_length(descricao) <= 300),
+        peso_minimo_kg integer not null check (peso_minimo_kg between 0 and 300),
+        atualizado_por text,
+        atualizado_em timestamptz not null default clock_timestamp()
+      );
+    `,
+  },
 ];

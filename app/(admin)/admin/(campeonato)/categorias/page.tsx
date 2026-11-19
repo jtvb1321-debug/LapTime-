@@ -1,36 +1,42 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
-import { DataTable, type Coluna } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
-import { categorias, getPilotosPorCategoria } from "@/lib/mock/data";
-import type { Categoria } from "@/lib/types";
+import {
+  CategoriasEditor,
+  type CategoriaEditavel,
+} from "@/components/admin/categorias-editor";
+import { getSession } from "@/lib/auth";
+import { aplicarAjustesDeCategoria } from "@/lib/categorias-store";
+import { categorias } from "@/lib/mock/data";
+import { pode } from "@/lib/permissoes";
+import { lerPilotos } from "@/lib/pilotos-store";
 
 export const metadata: Metadata = { title: "Categorias" };
 
-const colunas: Coluna<Categoria>[] = [
-  { header: "Nome", cell: (c) => c.nome },
-  { header: "Nível", cell: (c) => c.nivel },
-  {
-    header: "Peso mínimo (kg)",
-    cell: (c) => (c.pesoMinimoKg > 0 ? c.pesoMinimoKg : "—"),
-    numerica: true,
-  },
-  {
-    header: "Pilotos",
-    cell: (c) => getPilotosPorCategoria(c.id).length,
-    numerica: true,
-  },
-];
+export default async function AdminCategoriasPage() {
+  await aplicarAjustesDeCategoria();
+  const [pilotos, sessao] = await Promise.all([lerPilotos(), getSession()]);
+  const fichas: CategoriaEditavel[] = categorias.map((c) => ({
+    id: c.id,
+    nome: c.nome,
+    descricao: c.descricao,
+    pesoMinimoKg: c.pesoMinimoKg,
+    pilotos: pilotos.filter((p) => p.categoriaId === c.id).length,
+  }));
+  const podeEditar = Boolean(
+    sessao && pode(sessao.papel, "cadastro.gerenciar"),
+  );
 
-export default function AdminCategoriasPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Categorias"
-        description="Categorias do campeonato."
-        actions={<Button variant="secondary">Nova categoria</Button>}
+        description={
+          podeEditar
+            ? "Veja cada categoria e ajuste nome, descrição e peso mínimo."
+            : "Categorias do campeonato."
+        }
       />
-      <DataTable colunas={colunas} linhas={categorias} chave={(c) => c.id} />
+      <CategoriasEditor categorias={fichas} podeEditar={podeEditar} />
     </div>
   );
 }

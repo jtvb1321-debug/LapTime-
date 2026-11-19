@@ -1,3 +1,4 @@
+import { aplicarAjustesDeCategoria } from "@/lib/categorias-store";
 import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -8,7 +9,8 @@ import { categorias, getPilotosPorCategoria } from "@/lib/mock/data";
 
 export const metadata: Metadata = { title: "Categorias" };
 
-export default function CategoriasPage() {
+export default async function CategoriasPage() {
+  await aplicarAjustesDeCategoria();
   if (categorias.length === 0) {
     return (
       <p className="text-ink-2 text-sm">Nenhuma categoria cadastrada ainda.</p>
