@@ -26,6 +26,7 @@ interface PilotoResultado {
   kartNumero: number | null;
   melhorVoltaMs: number;
   gapMs: number;
+  gapTexto?: string | null;
   voltas: number | null;
 }
 
@@ -211,7 +212,7 @@ export default function OverlayResultadoPage() {
                 <span className="text-ink font-display w-20 shrink-0 text-right text-xs font-semibold tabular-nums">
                   {piloto.posicao === 1
                     ? formatTempoVolta(piloto.melhorVoltaMs)
-                    : formatGap(piloto.gapMs)}
+                    : (piloto.gapTexto ?? formatGap(piloto.gapMs))}
                 </span>
               </div>
             ))}

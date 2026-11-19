@@ -29,6 +29,7 @@ interface PilotoOverlay {
   voltaAtual: number | null;
   melhorVoltaMs: number;
   gapMs: number;
+  gapTexto?: string | null;
   voltaRapida: boolean;
 }
 
@@ -37,7 +38,7 @@ interface OverlayData {
     nome: string;
     status: string;
     numero: number;
-    voltas: number;
+    voltas: number | null;
     categoria: string | null;
     etapa: string | null;
   } | null;
@@ -211,7 +212,9 @@ export default function OverlayLiveTimingPage() {
           <div className="bg-orange text-on-orange flex items-center justify-between gap-2 px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase">
             <span>Volta</span>
             <span className="font-display">
-              {pilotos[0]?.voltaAtual ?? "-"}/{bateria?.voltas ?? "-"}
+              {bateria?.voltas
+                ? `${pilotos[0]?.voltaAtual ?? "-"}/${bateria.voltas}`
+                : (pilotos[0]?.voltaAtual ?? "-")}
             </span>
           </div>
         </div>
@@ -256,7 +259,7 @@ export default function OverlayLiveTimingPage() {
                 <span className="text-ink font-display w-16 shrink-0 text-right text-xs font-semibold tabular-nums">
                   {piloto.posicao === 1
                     ? formatTempoVolta(piloto.melhorVoltaMs)
-                    : formatGap(piloto.gapMs)}
+                    : (piloto.gapTexto ?? formatGap(piloto.gapMs))}
                 </span>
               </div>
             ))

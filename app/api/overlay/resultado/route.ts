@@ -1,19 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  baterias,
-  campeonato,
-  etapas,
-  getCategoriaById,
-  getKartById,
-  getResultadosPorBateria,
-  nomeExibicaoPiloto,
-} from "@/lib/mock/data";
-import {
-  BATERIA_FINAL_DEMO,
-  sincronizarDemoCorrida,
-} from "@/lib/demo-corrida";
+import { overlayResultado } from "@/lib/overlay-campeonato";
 import { lerPatrocinadores } from "@/lib/patrocinadores-store";
-import { encontrarPilotoPorId } from "@/lib/pilotos-store";
 
 async function patrocinadoresAtivos() {
   const patrocinadores = await lerPatrocinadores();
@@ -152,76 +139,10 @@ async function montarDemo() {
 }
 
 export async function GET(request: Request) {
-  sincronizarDemoCorrida();
   const { searchParams } = new URL(request.url);
+  // ?demo=1 mostra uma corrida fictícia só para ver o visual do overlay.
   if (searchParams.get("demo") === "1") {
     return NextResponse.json(await montarDemo());
   }
-
-  // A final da corrida de demonstração, quando termina, é a que vai pra tela.
-  const bateria =
-    baterias.find(
-      (b) => b.id === BATERIA_FINAL_DEMO && b.status === "encerrada",
-    ) ??
-    baterias.find((b) => b.status === "encerrada" && b.numero === 2) ??
-    baterias.find((b) => b.status === "encerrada");
-
-  if (!bateria) {
-    return NextResponse.json({
-      corrida: null,
-      vencedor: null,
-      pilotos: [],
-      patrocinadores: await patrocinadoresAtivos(),
-    });
-  }
-
-  const categoria = getCategoriaById(bateria.categoriaId);
-  const etapa = etapas.find((e) => e.id === bateria.etapaId);
-  const resultados = getResultadosPorBateria(bateria.id);
-
-  const pilotos = await Promise.all(
-    resultados.map(async (resultado) => {
-      const piloto = await encontrarPilotoPorId(resultado.pilotoId);
-      const kart = getKartById(resultado.kartId);
-      return {
-        posicao: resultado.posicao,
-        nome: piloto ? nomeExibicaoPiloto(piloto) : "Piloto",
-        numero: piloto?.numero ?? null,
-        avatarUrl: piloto?.avatarUrl ?? null,
-        uf: piloto?.uf ?? null,
-        kartNumero: kart?.numero ?? null,
-        melhorVoltaMs: resultado.melhorVoltaMs,
-        gapMs: resultado.gapMs,
-        voltas: resultado.voltaAtual ?? bateria.voltas,
-      };
-    }),
-  );
-
-  const resultadoVencedor = resultados.find((r) => r.posicao === 1);
-  const pilotoVencedor = resultadoVencedor
-    ? await encontrarPilotoPorId(resultadoVencedor.pilotoId)
-    : null;
-
-  return NextResponse.json({
-    corrida: {
-      numero: bateria.numero,
-      categoria: categoria?.nome ?? null,
-      etapa: etapa ? `${etapa.numero}ª Etapa` : null,
-      kartodromo: etapa?.kartodromo ?? null,
-      campeonato: campeonato
-        ? `${campeonato.nome} ${campeonato.temporada}`
-        : null,
-    },
-    vencedor: pilotoVencedor
-      ? {
-          nome: nomeExibicaoPiloto(pilotoVencedor),
-          avatarUrl: pilotoVencedor.avatarUrl ?? null,
-          numero: pilotoVencedor.numero,
-          corNumero: pilotoVencedor.corNumero ?? null,
-          corAssinatura: pilotoVencedor.corAssinatura ?? null,
-        }
-      : null,
-    pilotos,
-    patrocinadores: await patrocinadoresAtivos(),
-  });
+  return NextResponse.json(await overlayResultado());
 }

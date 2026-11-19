@@ -1,16 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  baterias,
-  etapas,
-  getCategoriaById,
-  getKartById,
-  getResultadosPorBateria,
-  getVoltaRapida,
-  nomeExibicaoPiloto,
-} from "@/lib/mock/data";
-import { sincronizarDemoCorrida } from "@/lib/demo-corrida";
+import { overlayAoVivo } from "@/lib/overlay-campeonato";
 import { lerPatrocinadores } from "@/lib/patrocinadores-store";
-import { encontrarPilotoPorId } from "@/lib/pilotos-store";
 
 async function patrocinadoresAtivos() {
   const patrocinadores = await lerPatrocinadores();
@@ -110,61 +100,10 @@ async function montarDemo() {
 }
 
 export async function GET(request: Request) {
-  sincronizarDemoCorrida();
   const { searchParams } = new URL(request.url);
+  // ?demo=1 mostra uma corrida fictícia só para ver o visual do overlay.
   if (searchParams.get("demo") === "1") {
     return NextResponse.json(await montarDemo());
   }
-
-  const bateria =
-    baterias.find((b) => b.status === "ao_vivo") ??
-    baterias.find((b) => b.status === "grid");
-
-  if (!bateria) {
-    return NextResponse.json({
-      bateria: null,
-      pilotos: [],
-      patrocinadores: await patrocinadoresAtivos(),
-    });
-  }
-
-  const categoria = getCategoriaById(bateria.categoriaId);
-  const etapa = etapas.find((e) => e.id === bateria.etapaId);
-  const voltaRapida = getVoltaRapida(bateria.id);
-  const resultados = getResultadosPorBateria(bateria.id);
-
-  const pilotos = await Promise.all(
-    resultados.map(async (resultado) => {
-      const piloto = await encontrarPilotoPorId(resultado.pilotoId);
-      const kart = getKartById(resultado.kartId);
-      return {
-        posicao: resultado.posicao,
-        nome: piloto ? nomeExibicaoPiloto(piloto) : "Piloto",
-        numero: piloto?.numero ?? null,
-        avatarUrl: piloto?.avatarUrl ?? null,
-        uf: piloto?.uf ?? null,
-        corNumero: piloto?.corNumero ?? null,
-        corAssinatura: piloto?.corAssinatura ?? null,
-        kartNumero: kart?.numero ?? null,
-        kartPlaca: kart?.placa ?? null,
-        voltaAtual: resultado.voltaAtual ?? null,
-        melhorVoltaMs: resultado.melhorVoltaMs,
-        gapMs: resultado.gapMs,
-        voltaRapida: voltaRapida?.id === resultado.id,
-      };
-    }),
-  );
-
-  return NextResponse.json({
-    bateria: {
-      nome: bateria.nome,
-      status: bateria.status,
-      numero: bateria.numero,
-      voltas: bateria.voltas,
-      categoria: categoria?.nome ?? null,
-      etapa: etapa ? `${etapa.numero}ª Etapa` : null,
-    },
-    pilotos,
-    patrocinadores: await patrocinadoresAtivos(),
-  });
+  return NextResponse.json(await overlayAoVivo());
 }

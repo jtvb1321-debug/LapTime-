@@ -1,405 +1,270 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
-import { clsx } from "clsx";
+import { NomeCategoria } from "@/components/ui/nome-categoria";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
-import { Avatar } from "@/components/ui/avatar";
-import { Card, CardHeader, CardBody } from "@/components/ui/card";
-import { CategoriaBadge } from "@/components/ui/categoria-badge";
-import { DataTable, type Coluna } from "@/components/ui/data-table";
-import { PosicaoBadge } from "@/components/ui/posicao-badge";
-import { PoleBadge, VoltaRapidaBadge } from "@/components/ui/race-badge";
+import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
-import { ButtonLink } from "@/components/ui/button";
-import { ClassificacaoCarrossel } from "@/components/admin/classificacao-carrossel";
-import { SimulacaoCard } from "@/components/admin/simulacao-card";
-import { corDoKart } from "@/lib/kart-cor";
-import {
-  baterias,
-  bonusVoltaRapidaConfirmado,
-  categorias,
-  etapas,
-  formatData,
-  formatGap,
-  formatTempoVolta,
-  getBateriaClassificatoriaDaFinal,
-  getCategoriaById,
-  getEtapaAtual,
-  getKartById,
-  getPilotoById,
-  getPilotosPorCategoria,
-  getPole,
-  getResultadosPorBateria,
-  getVoltaRapida,
-  inscricoes,
-  karts,
-  logSistema,
-  pilotos,
-  pontosComBonus,
-} from "@/lib/mock/data";
-import type { Resultado } from "@/lib/types";
+import { getSession } from "@/lib/auth";
+import { lerAoVivoDoCampeonato } from "@/lib/baterias-campeonato-store";
+import { carregarCampeonatoAtivo } from "@/lib/dados-do-campeonato";
+import { listarKarts } from "@/lib/cronometragem/cadastros-store";
+import { formatDataEHora } from "@/lib/etapa-formato";
+import { lerInscricoesDoCampeonato } from "@/lib/inscricoes-store";
+import { formatMoeda, nomeExibicaoPiloto } from "@/lib/mock/data";
+import { lerRecursos } from "@/lib/resultados-campeonato-store";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Painel gerencial" };
+export const dynamic = "force-dynamic";
 
-const TONE_ETAPA = {
-  agendada: "neutral",
-  em_andamento: "orange",
-  encerrada: "ink",
-  cancelada: "neutral",
-} as const;
+function Atalho({ href, rotulo }: { href: string; rotulo: string }) {
+  return (
+    <Link
+      href={href}
+      className="border-border bg-surface text-ink hover:border-border-strong flex min-h-11 items-center justify-center rounded-lg border px-4 text-sm font-medium"
+    >
+      {rotulo}
+    </Link>
+  );
+}
 
+// Visão geral do campeonato ativo, toda com dados reais (inscrições, pagamentos, frota, ao vivo,
+// classificação e resultados).
 export default async function AdminDashboardPage() {
   // A recepção só opera o balcão: vai direto pra agenda.
   const sessao = await getSession();
   if (sessao?.papel === "recepcao") redirect("/admin/balcao");
 
-  const etapaAtual = getEtapaAtual();
-  const bateriasDaEtapa = etapaAtual
-    ? baterias.filter((b) => b.etapaId === etapaAtual.id)
-    : [];
-  const bateriaAtual =
-    bateriasDaEtapa.find((b) => b.status === "ao_vivo") ??
-    bateriasDaEtapa.find((b) => b.status === "grid") ??
-    bateriasDaEtapa[0];
-  const categoriaAtual = bateriaAtual
-    ? getCategoriaById(bateriaAtual.categoriaId)
-    : undefined;
-  const proximaBateria = bateriasDaEtapa.find(
-    (b) =>
-      b.id !== bateriaAtual?.id &&
-      (b.status === "grid" || b.status === "agendada"),
-  );
-  const categoriaProxima = proximaBateria
-    ? getCategoriaById(proximaBateria.categoriaId)
-    : undefined;
-
-  const classificatoria = bateriaAtual
-    ? getBateriaClassificatoriaDaFinal(bateriaAtual)
-    : undefined;
-  const pole = classificatoria ? getPole(classificatoria.id) : undefined;
-  const voltaRapida = bateriaAtual
-    ? getVoltaRapida(bateriaAtual.id)
-    : undefined;
-
-  const inscricoesAguardando = inscricoes.filter(
-    (i) => i.status === "aguardando",
-  ).length;
-  const kartsDisponiveis = karts.filter(
-    (k) => k.status === "disponivel",
-  ).length;
-
-  const proximasEtapas = etapas
-    .filter((e) => e.status === "em_andamento" || e.status === "agendada")
-    .slice(0, 3);
-
-  const rankingPorCategoria = categorias.map((categoria) => ({
-    categoria,
-    pilotos: getPilotosPorCategoria(categoria.id).slice(0, 5),
-  }));
-
-  const colunasBateria: Coluna<Resultado>[] = [
-    {
-      header: "Pos.",
-      cell: (r) => (
-        <span className="flex items-center justify-end gap-2">
-          <PosicaoBadge posicao={r.posicao} />
-          {pole?.pilotoId === r.pilotoId ? <PoleBadge /> : null}
-        </span>
-      ),
-      numerica: true,
-    },
-    {
-      header: "Piloto",
-      cell: (r) => {
-        const piloto = getPilotoById(r.pilotoId);
-        return (
-          <span className="flex items-center gap-2.5">
-            <Avatar
-              nome={piloto?.nome ?? ""}
-              avatarUrl={piloto?.avatarUrl}
-              tamanho="sm"
-            />
-            {piloto?.nome}
-          </span>
-        );
-      },
-    },
-    {
-      header: "Kart",
-      cell: (r) => {
-        const kart = getKartById(r.kartId);
-        return (
-          <span
-            className={clsx(
-              "rounded px-1.5 py-0.5 font-mono text-xs font-semibold",
-              corDoKart(kart?.numero ?? 0),
-            )}
+  const dados = await carregarCampeonatoAtivo();
+  if (!dados) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Painel gerencial"
+          description="Visão geral do campeonato."
+        />
+        <p className="border-border text-ink-2 rounded-xl border border-dashed px-5 py-10 text-center text-sm">
+          Não há campeonato ativo. Crie e ative um em{" "}
+          <Link
+            href="/admin/campeonatos"
+            className="text-orange-ink font-medium hover:underline"
           >
-            {kart?.placa}
-          </span>
-        );
-      },
-    },
-    {
-      header: "Melhor volta",
-      cell: (r) => (
-        <span className="flex items-center justify-end gap-2">
-          {formatTempoVolta(r.melhorVoltaMs)}
-          {voltaRapida?.id === r.id ? (
-            <VoltaRapidaBadge
-              provisoria={bateriaAtual?.status !== "encerrada"}
-            />
-          ) : null}
-        </span>
-      ),
-      numerica: true,
-    },
-    {
-      header: "Gap",
-      cell: (r) => (
-        <span className="text-orange-ink">{formatGap(r.gapMs)}</span>
-      ),
-      numerica: true,
-    },
-    {
-      header: "Pontos",
-      cell: (r) => {
-        if (!bateriaAtual) return r.pontos;
-        const pontos = pontosComBonus(bateriaAtual, r);
-        return (
-          <span className="text-orange-ink font-semibold">
-            {pontos}
-            {bonusVoltaRapidaConfirmado(bateriaAtual, r) ? " (+1 VR)" : ""}
-          </span>
-        );
-      },
-      numerica: true,
-    },
-  ];
+            Campeonatos
+          </Link>
+          .
+        </p>
+      </div>
+    );
+  }
+
+  const { campeonato, resultados, pilotos, etapas } = dados;
+  const [inscricoes, vivo, karts, recursos] = await Promise.all([
+    lerInscricoesDoCampeonato(campeonato.id),
+    lerAoVivoDoCampeonato(),
+    listarKarts().catch(() => []),
+    lerRecursos(campeonato.id),
+  ]);
+
+  const proxima = etapas
+    .filter((e) => e.status === "agendada" || e.status === "em_andamento")
+    .sort((a, b) =>
+      `${a.data} ${a.hora ?? ""}`.localeCompare(`${b.data} ${b.hora ?? ""}`),
+    )[0];
+  const daProxima = proxima
+    ? inscricoes.filter(
+        (i) => i.etapaId === proxima.id && i.status !== "cancelada",
+      )
+    : [];
+  const confirmadas = daProxima.filter((i) => i.status === "confirmada").length;
+  const pendentes = daProxima.length - confirmadas;
+
+  const soma = (status: string) =>
+    inscricoes
+      .filter((i) => i.pagamento?.status === status)
+      .reduce((t, i) => t + (i.pagamento?.valorCentavos ?? 0), 0);
+  const recursosAbertos = recursos.filter((r) => r.status === "aberto").length;
+  const kartsAtivos = karts.filter((k) => k.status === "ativo").length;
+
+  const lider = (categoriaId: string) =>
+    resultados.classificacao
+      .filter((c) => c.categoriaId === categoriaId)
+      .sort((a, b) => a.posicao - b.posicao)
+      .slice(0, 3);
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Dashboard" description="Visão geral do campeonato." />
+      <PageHeader
+        title="Painel gerencial"
+        description={`${campeonato.nome} · temporada ${campeonato.temporada}`}
+      />
 
-      <SimulacaoCard />
-
-      <div className="flex flex-col gap-4 lg:flex-row">
-        <Card className="overflow-hidden lg:flex-[2]">
-          {etapaAtual ? (
-            <>
-              <div
-                className={clsx(
-                  "h-1 w-full",
-                  etapaAtual.status === "em_andamento"
-                    ? "bg-orange"
-                    : etapaAtual.status === "encerrada"
-                      ? "bg-ink"
-                      : "bg-ink-3",
-                )}
-              />
-              <CardBody className="flex flex-col gap-2">
-                <StatusPill tone={TONE_ETAPA[etapaAtual.status]}>
-                  {etapaAtual.status.replace("_", " ")}
-                </StatusPill>
-                <h2 className="text-ink text-lg font-semibold">
-                  Etapa {etapaAtual.numero} — {etapaAtual.kartodromo}
-                </h2>
-                <p className="text-ink-2 text-sm">
-                  {etapaAtual.cidade} · {formatData(etapaAtual.data)}
-                </p>
-                {proximaBateria ? (
-                  <p className="text-ink-2 text-sm">
-                    Próxima bateria: {categoriaProxima?.nome} —{" "}
-                    {proximaBateria.nome} às {proximaBateria.horario}
-                  </p>
-                ) : null}
-              </CardBody>
-            </>
-          ) : (
-            <CardBody className="flex flex-col gap-2">
-              <h2 className="text-ink text-lg font-semibold">
-                Nenhum campeonato cadastrado
-              </h2>
-              <p className="text-ink-2 text-sm">
-                Cadastre um campeonato e uma etapa para começar a temporada.
-              </p>
-              <Link
-                href="/admin/campeonatos"
-                className="text-orange-ink w-fit text-sm font-medium hover:underline"
-              >
-                Ir para Campeonatos →
-              </Link>
-            </CardBody>
-          )}
-        </Card>
-
-        <div className="flex flex-col gap-2 lg:flex-1">
-          <ButtonLink
-            href="/admin/live-timing"
-            className="w-full justify-start"
-          >
-            Live timing
-          </ButtonLink>
-          <ButtonLink
-            href="/admin/balizamento"
-            variant="secondary"
-            className="w-full justify-start"
-          >
-            Balizamento
-          </ButtonLink>
-          <ButtonLink
-            href="/admin/resultados"
-            variant="secondary"
-            className="w-full justify-start"
-          >
-            Resultados
-          </ButtonLink>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex items-center justify-between">
-            <h2 className="text-ink text-sm font-medium">Próximas etapas</h2>
-            <Link
-              href="/admin/etapas"
-              className="text-ink-2 hover:text-orange-ink text-xs font-medium"
-            >
-              Ver todas →
-            </Link>
-          </CardHeader>
-          <CardBody className="flex flex-col gap-1">
-            {proximasEtapas.map((etapa) => (
-              <div
-                key={etapa.id}
-                className="border-border flex items-center justify-between border-b py-2 text-sm last:border-0 last:pb-0"
-              >
-                <div>
-                  <p className="text-ink font-medium">
-                    Etapa {etapa.numero} — {etapa.kartodromo}
-                  </p>
-                  <p className="text-ink-3 text-xs">
-                    {etapa.cidade} · {formatData(etapa.data)}
-                  </p>
-                </div>
-                <StatusPill tone={TONE_ETAPA[etapa.status]}>
-                  {etapa.status.replace("_", " ")}
-                </StatusPill>
-              </div>
-            ))}
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex items-center justify-between">
-            <h2 className="text-ink text-sm font-medium">
-              Classificação geral
-            </h2>
-            <Link
-              href="/admin/pontuacao"
-              className="text-ink-2 hover:text-orange-ink text-xs font-medium"
-            >
-              Ver todas →
-            </Link>
-          </CardHeader>
-          <CardBody>
-            <ClassificacaoCarrossel grupos={rankingPorCategoria} />
-          </CardBody>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            {categoriaAtual ? (
-              <CategoriaBadge
-                nome={categoriaAtual.nome}
-                categoriaId={categoriaAtual.id}
-              />
-            ) : null}
-            <h2 className="text-ink text-sm font-medium">
-              {bateriaAtual ? bateriaAtual.nome : "Nenhuma bateria no momento"}
-            </h2>
-          </div>
-          {bateriaAtual ? (
-            <StatusPill
-              tone={bateriaAtual.status === "ao_vivo" ? "orange" : "neutral"}
-            >
-              {bateriaAtual.horario}
-            </StatusPill>
-          ) : null}
-        </CardHeader>
-        <CardBody className="flex flex-col gap-3">
-          {bateriaAtual ? (
-            <>
-              <DataTable
-                colunas={colunasBateria}
-                linhas={getResultadosPorBateria(bateriaAtual.id)}
-                chave={(r) => r.id}
-              />
-              <div className="text-ink-3 flex flex-wrap justify-between gap-2 text-xs">
-                {voltaRapida ? (
-                  <span>
-                    Volta mais rápida:{" "}
-                    <span className="text-ink font-medium">
-                      {getPilotoById(voltaRapida.pilotoId)?.nome} —{" "}
-                      {formatTempoVolta(voltaRapida.melhorVoltaMs)}
-                    </span>
-                  </span>
-                ) : null}
-                {pole ? (
-                  <span>
-                    Pole:{" "}
-                    <span className="text-ink font-medium">
-                      {getPilotoById(pole.pilotoId)?.nome} —{" "}
-                      {formatTempoVolta(pole.melhorVoltaMs)}
-                    </span>
-                  </span>
-                ) : null}
-              </div>
-            </>
-          ) : (
-            <p className="text-ink-2 text-sm">
-              Nenhuma bateria em andamento no momento.
-            </p>
-          )}
-        </CardBody>
-      </Card>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Pilotos inscritos" value={pilotos.length} />
-        <StatCard label="Etapas na temporada" value={etapas.length} />
-        <StatCard label="Karts disponíveis" value={kartsDisponiveis} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Pilotos" value={pilotos.length} />
         <StatCard
-          label="Inscrições aguardando"
-          value={inscricoesAguardando}
-          hint="pagamento pendente"
+          label="Inscrições confirmadas"
+          value={confirmadas}
+          hint={proxima ? `na ${proxima.nome}` : "sem etapa aberta"}
+        />
+        <StatCard label="A receber" value={formatMoeda(soma("aguardando"))} />
+        <StatCard label="Recebido" value={formatMoeda(soma("confirmado"))} />
+        <StatCard label="Karts ativos" value={kartsAtivos} />
+        <StatCard
+          label="Recursos abertos"
+          value={recursosAbertos}
+          hint={recursosAbertos > 0 ? "aguardando decisão" : undefined}
         />
       </div>
 
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="flex items-center justify-between">
+            <h2 className="text-ink text-sm font-medium">Próxima etapa</h2>
+            <Link
+              href="/admin/etapas"
+              className="text-orange-ink text-xs font-medium hover:underline"
+            >
+              Etapas →
+            </Link>
+          </CardHeader>
+          <CardBody className="flex flex-col gap-2">
+            {proxima ? (
+              <>
+                <p className="font-display text-ink text-xl font-bold">
+                  {proxima.nome}
+                </p>
+                <p className="text-orange-ink text-sm font-medium">
+                  {formatDataEHora(proxima)}
+                </p>
+                <p className="text-ink-2 text-sm">
+                  {proxima.kartodromo}, {proxima.cidade}
+                </p>
+                <p className="text-ink-2 text-sm">
+                  {confirmadas} confirmado(s)
+                  {pendentes > 0 ? ` · ${pendentes} aguardando pagamento` : ""}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Atalho href="/admin/inscricoes" rotulo="Inscrições" />
+                  <Atalho href="/admin/baterias" rotulo="Baterias" />
+                </div>
+              </>
+            ) : (
+              <p className="text-ink-2 text-sm">
+                Nenhuma etapa agendada. Cadastre em Etapas.
+              </p>
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex items-center justify-between">
+            <h2 className="text-ink text-sm font-medium">Ao vivo agora</h2>
+            <Link
+              href="/admin/live-timing"
+              className="text-orange-ink text-xs font-medium hover:underline"
+            >
+              Live timing →
+            </Link>
+          </CardHeader>
+          <CardBody className="flex flex-col gap-2">
+            {vivo ? (
+              <>
+                <StatusPill tone="orange">
+                  <span className="bg-orange h-1.5 w-1.5 animate-pulse rounded-full" />{" "}
+                  AO VIVO
+                </StatusPill>
+                <p className="text-ink-2 text-sm">
+                  <NomeCategoria
+                    categoriaId={vivo.categoriaId}
+                    className="inline-block rounded bg-[#0c1630] px-2 py-0.5"
+                  >
+                    {dados.categorias.find((c) => c.id === vivo.categoriaId)
+                      ?.nome ?? vivo.categoriaId}
+                  </NomeCategoria>{" "}
+                  · {vivo.etapaNome}
+                </p>
+                <ol className="flex flex-col gap-1 text-sm">
+                  {vivo.linhas.slice(0, 5).map((l, i) => (
+                    <li
+                      key={`${l.nome}-${i}`}
+                      className="flex justify-between gap-3"
+                    >
+                      <span className="text-ink">
+                        {l.posicao ?? "—"}º {l.nome}
+                      </span>
+                      <span className="text-ink-3">{l.voltas} volta(s)</span>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            ) : (
+              <p className="text-ink-2 text-sm">
+                Nenhuma bateria rolando neste momento.
+              </p>
+            )}
+          </CardBody>
+        </Card>
+      </div>
+
       <Card>
-        <CardBody className="flex flex-col gap-3">
-          <h2 className="text-ink text-sm font-medium">Atividade recente</h2>
-          <ul className="flex flex-col gap-2">
-            {logSistema.map((log) => (
-              <li
-                key={log.id}
-                className="border-border flex items-center justify-between border-b pb-2 text-sm last:border-0 last:pb-0"
-              >
-                <span className="text-ink-2">
-                  {log.usuarioId} {log.acao} {log.entidade}{" "}
-                  <span className="text-ink-3 font-mono">{log.entidadeId}</span>
-                </span>
-                <span className="text-ink-3 font-mono text-xs">
-                  {formatData(log.criadoEm.slice(0, 10))}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <CardHeader className="flex items-center justify-between">
+          <h2 className="text-ink text-sm font-medium">
+            Líderes por categoria
+          </h2>
+          <Link
+            href="/admin/resultados"
+            className="text-orange-ink text-xs font-medium hover:underline"
+          >
+            Classificação completa →
+          </Link>
+        </CardHeader>
+        <CardBody className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {dados.categorias.map((c) => {
+            const top = lider(c.id);
+            return (
+              <div key={c.id} className="flex flex-col gap-1.5">
+                <p className="text-sm font-semibold">
+                  <NomeCategoria
+                    categoriaId={c.id}
+                    className="inline-block rounded bg-[#0c1630] px-2 py-0.5"
+                  >
+                    {c.nome}
+                  </NomeCategoria>
+                </p>
+                {top.length === 0 ? (
+                  <p className="text-ink-3 text-xs">Sem pilotos.</p>
+                ) : (
+                  <ol className="flex flex-col gap-0.5 text-sm">
+                    {top.map((t) => {
+                      const p = pilotos.find((x) => x.id === t.pilotoId);
+                      return (
+                        <li
+                          key={t.pilotoId}
+                          className="flex justify-between gap-3"
+                        >
+                          <span className="text-ink">
+                            {t.posicao}º {p ? nomeExibicaoPiloto(p) : "—"}
+                          </span>
+                          <span className="text-orange-ink font-semibold">
+                            {t.pontos}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
+              </div>
+            );
+          })}
         </CardBody>
       </Card>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Atalho href="/admin/balizamento" rotulo="Balizamento" />
+        <Atalho href="/admin/pagamentos" rotulo="Pagamentos" />
+        <Atalho href="/admin/punicoes" rotulo="Punições" />
+        <Atalho href="/admin/relatorios" rotulo="Relatórios" />
+      </div>
     </div>
   );
 }

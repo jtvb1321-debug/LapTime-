@@ -207,6 +207,9 @@ export async function excluirBateriaDoCampeonato(
 // ---- Ao vivo ------------------------------------------------------------------------------
 
 export interface LinhaAoVivo {
+  pilotoId: string | null;
+  gapMs: number | null;
+  voltasAtras: number | null;
   posicao: number | null;
   nome: string;
   numero: number | null;
@@ -255,14 +258,18 @@ export async function lerAoVivoDoCampeonato(): Promise<AoVivoDoCampeonato | null
   if (!l) return null;
   const painel = await lerPainel(l.corrida_id);
   if (!painel) return null;
-  const numeros = new Map(
+  const cps = new Map(
     (
-      await consultar<{ id: string; numero: number | null }>(
-        `select cp.id, p.numero from corrida_piloto cp
+      await consultar<{
+        id: string;
+        numero: number | null;
+        piloto_id: string | null;
+      }>(
+        `select cp.id, p.numero, cp.piloto_id from corrida_piloto cp
            left join piloto p on p.id = cp.piloto_id where cp.corrida_id = $1`,
         [l.corrida_id],
       )
-    ).map((n) => [n.id, n.numero]),
+    ).map((n) => [n.id, n]),
   );
   return {
     bateriaId: l.bateria_id,
@@ -274,7 +281,10 @@ export async function lerAoVivoDoCampeonato(): Promise<AoVivoDoCampeonato | null
     linhas: painel.classificacao.map((c) => ({
       posicao: c.posicao,
       nome: c.nome,
-      numero: numeros.get(c.participanteId) ?? null,
+      pilotoId: cps.get(c.participanteId)?.piloto_id ?? null,
+      numero: cps.get(c.participanteId)?.numero ?? null,
+      gapMs: c.diferenca?.tipo === "tempo" ? c.diferenca.ms : null,
+      voltasAtras: c.diferenca?.tipo === "voltas" ? c.diferenca.voltas : null,
       kartNumero: c.kartNumero,
       voltas: c.voltas,
       ultimaVoltaMs: c.ultimaVoltaMs,
