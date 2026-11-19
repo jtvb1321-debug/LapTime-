@@ -234,3 +234,46 @@ export function menuParaPapel(papel: PapelUsuario): AdminNavGroup[] {
     }))
     .filter((g) => g.itens.length > 0);
 }
+
+// Frase curta de cada módulo, mostrada no menu inferior abaixo do nome. Só apresentação.
+const DESCRICOES: Record<string, string> = {
+  "/admin/balcao": "Tudo o que acontece hoje",
+  "/admin/operacao/agenda": "Reservas e horários",
+  "/admin/operacao/clientes": "Cadastro e histórico",
+  "/admin/cronometragem/pista": "Ao vivo, baterias e resultados",
+  "/admin/campeonatos": "Temporadas e regras",
+  "/admin/etapas": "Calendário de provas",
+  "/admin/categorias": "Master, Rookie e demais",
+  "/admin/tracados": "Pistas e circuitos",
+  "/admin/video-tracado": "Vídeo de apresentação",
+  "/admin/patrocinadores": "Marcas do campeonato",
+  "/admin/pilotos": "Cadastro dos pilotos",
+  "/admin/inscricoes": "Quem vai correr",
+  "/admin/pagamentos": "Cobranças das inscrições",
+  "/admin/karts": "Frota da etapa",
+  "/admin/balizamento": "Grid de largada",
+  "/admin/baterias": "Corridas da etapa",
+  "/admin/live-timing": "Tempos em tempo real",
+  "/admin/resultados": "Chegada e pontos",
+  "/admin/pontuacao": "Tabela de pontos",
+  "/admin/punicoes": "Penalidades aplicadas",
+  "/admin/recursos": "Contestações dos pilotos",
+  "/admin/operacao/caixa": "Entradas e saídas do dia",
+  "/admin/operacao/relatorio": "Fechamento diário",
+  "/admin/operacao/financeiro": "Visão do dinheiro no mês",
+  "/admin/operacao/contas": "Vencimentos e pagamentos",
+  "/admin/dashboard": "Indicadores da operação",
+  "/admin/relatorios": "Resultados e estatísticas",
+  "/admin/configuracoes": "Imagem e dados gerais",
+  "/admin/configuracoes/decoder": "Equipamento de tempos",
+  "/admin/demonstracao": "Corrida simulada",
+  "/admin/operacao/termo": "Texto para os clientes",
+  "/admin/usuarios": "Acessos da equipe",
+  "/admin/meu-perfil": "Nome, número e foto",
+  "/admin/pista-e-baterias": "Ao vivo e resultados",
+  "/": "Página inicial do site",
+};
+
+export function descricaoDoItem(href: string): string | undefined {
+  return DESCRICOES[href];
+}
