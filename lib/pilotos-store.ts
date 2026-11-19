@@ -84,7 +84,11 @@ export async function lerPilotos(): Promise<Piloto[]> {
     ...simulados,
     ...reais.map((p, indice) => ({
       ...p,
-      posicaoCampeonato: simulados.length + indice + 1,
+      // Posição real (gravada pela classificação do campeonato); sem ela, a ordem de cadastro.
+      posicaoCampeonato:
+        p.posicaoCampeonato > 0
+          ? p.posicaoCampeonato
+          : simulados.length + indice + 1,
     })),
   ];
 }

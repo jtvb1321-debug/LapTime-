@@ -997,4 +997,56 @@ export const MIGRACOES: Migracao[] = [
       );
     `,
   },
+  {
+    // Pontuação, punições e recursos do campeonato. Estrutural: em produção o SQL é aplicado à mão
+    // (deploy/discloud/campeonato-resultados.sql, o mesmo texto).
+    id: "0027_campeonato_resultados",
+    estrutural: true,
+    sql: `
+      -- Tabela de pontos de cada campeonato (sem linha = tabela padrao do sistema).
+      create table if not exists pontuacao_campeonato (
+        campeonato_id text primary key references campeonato (id) on delete cascade,
+        por_posicao jsonb not null,
+        pole integer not null default 0 check (pole between 0 and 1000),
+        volta_rapida integer not null default 0 check (volta_rapida between 0 and 1000),
+        participacao integer not null default 0 check (participacao between 0 and 1000),
+        atualizado_por text,
+        atualizado_em timestamptz not null default clock_timestamp()
+      );
+
+      -- Punicoes do campeonato (advertencia, perda de pontos na etapa ou desclassificacao da etapa).
+      create table if not exists punicao_campeonato (
+        id text primary key,
+        campeonato_id text not null references campeonato (id) on delete cascade,
+        etapa_id text references etapa (id) on delete cascade,
+        piloto_id text not null references piloto (id) on delete cascade,
+        tipo text not null check (tipo in ('advertencia', 'perda_pontos', 'desclassificacao')),
+        pontos integer not null default 0 check (pontos between 0 and 1000),
+        motivo text not null check (char_length(motivo) between 3 and 500),
+        criado_por text,
+        criada_em timestamptz not null default clock_timestamp(),
+        anulada_em timestamptz,
+        anulada_por text,
+        check (tipo = 'advertencia' or etapa_id is not null)
+      );
+      create index if not exists punicao_campeonato_camp on punicao_campeonato (campeonato_id, criada_em);
+
+      -- Recursos (contestacoes) feitos pelos pilotos e decididos pela organizacao.
+      create table if not exists recurso (
+        id text primary key,
+        campeonato_id text not null references campeonato (id) on delete cascade,
+        etapa_id text references etapa (id) on delete set null,
+        piloto_id text not null references piloto (id) on delete cascade,
+        texto text not null check (char_length(texto) between 10 and 1500),
+        status text not null default 'aberto'
+          check (status in ('aberto', 'deferido', 'indeferido')),
+        parecer text check (parecer is null or char_length(parecer) <= 1500),
+        decidido_por text,
+        criado_em timestamptz not null default clock_timestamp(),
+        decidido_em timestamptz
+      );
+      create index if not exists recurso_camp on recurso (campeonato_id, criado_em);
+      create index if not exists recurso_piloto on recurso (piloto_id);
+    `,
+  },
 ];

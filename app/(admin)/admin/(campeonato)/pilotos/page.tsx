@@ -4,6 +4,7 @@ import { PilotosPorCategoria } from "@/components/admin/pilotos-por-categoria";
 import { aplicarAjustesDeCategoria } from "@/lib/categorias-store";
 import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
 import { categorias } from "@/lib/mock/data";
+import { atualizarClassificacaoDosPilotos } from "@/lib/resultados-campeonato-store";
 import { lerPilotos } from "@/lib/pilotos-store";
 
 export const metadata: Metadata = { title: "Pilotos" };
@@ -15,6 +16,7 @@ export default async function AdminPilotosPage({
   searchParams: Promise<{ categoria?: string }>;
 }) {
   await aplicarAjustesDeCategoria();
+  await atualizarClassificacaoDosPilotos();
   const [{ categoria }, pilotos, ativo] = await Promise.all([
     searchParams,
     lerPilotos(),

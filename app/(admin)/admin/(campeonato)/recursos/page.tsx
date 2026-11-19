@@ -1,49 +1,46 @@
-import { AvisoEmDesenvolvimento } from "@/components/admin/aviso-em-desenvolvimento";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { RecursosAdmin } from "@/components/admin/resultados-admin";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusPill } from "@/components/ui/status-pill";
-import { Card, CardBody } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { formatData, getPilotoById, punicoes } from "@/lib/mock/data";
+import { getSession } from "@/lib/auth";
+import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
+import { pode } from "@/lib/permissoes";
+import { lerRecursos } from "@/lib/resultados-campeonato-store";
 
 export const metadata: Metadata = { title: "Recursos" };
+export const dynamic = "force-dynamic";
 
-export default function AdminRecursosPage() {
+export default async function AdminRecursosPage() {
+  const [campeonato, sessao] = await Promise.all([
+    lerCampeonatoAtivo(),
+    getSession(),
+  ]);
+  const recursos = campeonato ? await lerRecursos(campeonato.id) : [];
   return (
     <div className="flex flex-col gap-6">
-      <AvisoEmDesenvolvimento />
       <PageHeader
         title="Recursos"
-        description="Recursos contra punições ou resultados, protocolados pelos pilotos."
+        description="Contestações enviadas pelos pilotos. Responda com um parecer: deferido (aceito) ou indeferido (negado)."
       />
-
-      <p className="text-ink-2 text-sm">
-        Nenhum recurso protocolado nesta etapa. Punições elegíveis para recurso:
-      </p>
-
-      <div className="flex flex-col gap-2">
-        {punicoes.map((punicao) => (
-          <Card key={punicao.id}>
-            <CardBody className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-ink text-sm font-medium">
-                  {getPilotoById(punicao.pilotoId)?.nome}
-                </p>
-                <p className="text-ink-2 text-sm">
-                  {punicao.tipo.replace("_", " ")} — {punicao.motivo}
-                </p>
-                <p className="text-ink-3 font-mono text-xs">
-                  {formatData(punicao.aplicadaEm)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <StatusPill tone="neutral">sem recurso</StatusPill>
-                <Button variant="secondary">Registrar recurso</Button>
-              </div>
-            </CardBody>
-          </Card>
-        ))}
-      </div>
+      {!campeonato ? (
+        <p className="border-border text-ink-2 rounded-xl border border-dashed px-5 py-10 text-center text-sm">
+          Não há campeonato ativo. Ative um em{" "}
+          <Link
+            href="/admin/campeonatos"
+            className="text-orange-ink font-medium hover:underline"
+          >
+            Campeonatos
+          </Link>
+          .
+        </p>
+      ) : (
+        <RecursosAdmin
+          recursos={recursos}
+          podeEditar={Boolean(
+            sessao && pode(sessao.papel, "cadastro.gerenciar"),
+          )}
+        />
+      )}
     </div>
   );
 }

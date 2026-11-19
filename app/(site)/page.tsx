@@ -11,6 +11,7 @@ import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
 import { etapasDoCampeonatoAtivo } from "@/lib/etapas-store";
 import { lerImagemDoCampeonato } from "@/lib/campeonato-imagem-store";
 import { categorias } from "@/lib/mock/data";
+import { atualizarClassificacaoDosPilotos } from "@/lib/resultados-campeonato-store";
 import { lerPilotos } from "@/lib/pilotos-store";
 
 function TituloDaSecao({
@@ -46,6 +47,7 @@ function TituloDaSecao({
 
 export default async function HomePage() {
   await aplicarAjustesDeCategoria();
+  await atualizarClassificacaoDosPilotos();
   const [campeonato, pilotos, etapas] = await Promise.all([
     lerCampeonatoAtivo(),
     lerPilotos(),

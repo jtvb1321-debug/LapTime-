@@ -5,21 +5,14 @@ import { notFound } from "next/navigation";
 import { CategoriaBadge } from "@/components/ui/categoria-badge";
 import { PoleBadge, VoltaRapidaBadge } from "@/components/ui/race-badge";
 import {
-  baterias,
-  bonusVoltaRapidaConfirmado,
-  etapas,
   formatData,
-  formatTempoVolta,
   getCategoriaById,
-  getPole,
   getTracadoById,
-  getVoltaRapida,
-  inscricoes,
   nomeExibicaoPiloto,
-  pontosComBonus,
-  punicoes,
-  resultados,
 } from "@/lib/mock/data";
+import { formatarTempoVolta } from "@/lib/cronometragem/voltas";
+import { carregarCampeonatoAtivo } from "@/lib/dados-do-campeonato";
+import { lerInscricoesDoPiloto } from "@/lib/inscricoes-store";
 import {
   EvolucaoPontos,
   type PontoEvolucao,
@@ -56,7 +49,7 @@ interface LinhaHistorico {
   etapa: string;
   corrida: string;
   data: string;
-  posicao: number;
+  posicao: number | null;
   ehPole: boolean;
   melhorVolta: string;
   ehVoltaRapida: boolean;
@@ -82,68 +75,43 @@ export default async function PilotoPage({
   const temporada = (await lerCampeonatoAtivo())?.temporada;
   const nome = nomeExibicaoPiloto(piloto);
 
-  // Resultados oficiais do piloto (mesma fonte e mesmas regras de antes).
-  const historico = resultados.filter((r) => r.pilotoId === piloto.id);
-  const poles = baterias.filter(
-    (b) => b.numero === 1 && getPole(b.id)?.pilotoId === piloto.id,
-  ).length;
-  const voltasRapidas = baterias.filter(
-    (b) => b.numero === 2 && getVoltaRapida(b.id)?.pilotoId === piloto.id,
-  ).length;
+  // Resultados oficiais do piloto no campeonato ativo (corridas finalizadas na cronometragem).
+  const dados = await carregarCampeonatoAtivo();
+  const dele = (dados?.resultados.baterias ?? []).flatMap((b) =>
+    b.linhas.filter((l) => l.pilotoId === piloto.id).map((l) => ({ b, l })),
+  );
+  const classificado = dados?.resultados.classificacao.find(
+    (c) => c.pilotoId === piloto.id,
+  );
+  const poles = classificado?.poles ?? 0;
+  const voltasRapidas = classificado?.voltasRapidas ?? 0;
 
-  const linhas: LinhaHistorico[] = historico
-    .map((r) => {
-      const bateria = baterias.find((b) => b.id === r.bateriaId);
-      const etapa = etapas.find((e) => e.id === bateria?.etapaId);
-      const pts = bateria ? pontosComBonus(bateria, r) : r.pontos;
-      const penal = punicoes.filter(
-        (p) => p.bateriaId === r.bateriaId && p.pilotoId === piloto.id,
-      );
-      return {
-        id: r.id,
-        etapa: etapa?.nome ?? "Etapa",
-        corrida: bateria?.nome ?? "",
-        data: etapa ? formatData(etapa.data) : "",
-        posicao: r.posicao,
-        ehPole: bateria?.numero === 1 && r.posicao === 1,
-        melhorVolta: formatTempoVolta(r.melhorVoltaMs),
-        ehVoltaRapida:
-          bateria?.numero === 2 && getVoltaRapida(r.bateriaId)?.id === r.id,
-        pontos:
-          bateria && bonusVoltaRapidaConfirmado(bateria, r)
-            ? `${pts} (+1 VR)`
-            : String(pts),
-        penalidades: penal.length
-          ? penal.map((p) => p.tipo.replace(/_/g, " ")).join(", ")
-          : null,
-        _ordem: (etapa?.numero ?? 0) * 100 + (bateria?.numero ?? 0),
-      };
-    })
-    .sort((a, b) => a._ordem - b._ordem)
-    .map(({ _ordem, ...resto }) => {
-      void _ordem;
-      return resto;
-    });
+  const linhas: LinhaHistorico[] = dele.map(({ b, l }) => ({
+    id: `${b.bateriaId}-${l.nome}`,
+    etapa: b.etapaNome,
+    corrida: "",
+    data: formatData(b.etapaData),
+    posicao: l.posicao !== null && !l.desclassificada ? l.posicao : null,
+    ehPole: l.pole,
+    melhorVolta:
+      l.melhorVoltaMs !== null ? formatarTempoVolta(l.melhorVoltaMs) : "—",
+    ehVoltaRapida: l.voltaRapida,
+    pontos: String(l.total),
+    penalidades: l.desclassificada
+      ? "Desclassificado"
+      : l.penalidade > 0
+        ? `−${l.penalidade} pts`
+        : null,
+  }));
   const temPenalidades = linhas.some((l) => l.penalidades);
 
-  // Evolução: pontos acumulados por etapa, a partir dos mesmos resultados.
-  const porEtapa = new Map<
-    string,
-    { numero: number; nome: string; pts: number }
-  >();
-  for (const r of historico) {
-    const bateria = baterias.find((b) => b.id === r.bateriaId);
-    const etapa = etapas.find((e) => e.id === bateria?.etapaId);
-    if (!bateria || !etapa) continue;
-    const atual = porEtapa.get(etapa.id) ?? {
-      numero: etapa.numero,
-      nome: etapa.nome,
-      pts: 0,
-    };
-    atual.pts += pontosComBonus(bateria, r);
-    porEtapa.set(etapa.id, atual);
-  }
-  const ordenadas = [...porEtapa.values()].sort((a, b) => a.numero - b.numero);
+  // Evolução: pontos acumulados por etapa.
+  const ordenadas = (dados?.etapas ?? [])
+    .filter((e) => classificado?.porEtapa[e.id] !== undefined)
+    .map((e) => ({
+      nome: e.nome,
+      pts: classificado?.porEtapa[e.id] ?? 0,
+    }));
   const evolucao: PontoEvolucao[] = ordenadas.map((e, idx) => ({
     rotulo: e.nome,
     pontosDaEtapa: e.pts,
@@ -156,11 +124,12 @@ export default async function PilotoPage({
     .sort((a, b) =>
       `${a.data} ${a.hora ?? ""}`.localeCompare(`${b.data} ${b.hora ?? ""}`),
     )[0];
-  const inscricao = proxima
-    ? inscricoes.find(
-        (i) => i.pilotoId === piloto.id && i.etapaId === proxima.id,
-      )
-    : undefined;
+  const inscricao =
+    proxima && dados
+      ? (await lerInscricoesDoPiloto(piloto.id, dados.campeonato.id)).find(
+          (i) => i.etapaId === proxima.id && i.status !== "cancelada",
+        )
+      : undefined;
   const circuito = proxima
     ? [
         proxima.kartodromo,
@@ -175,17 +144,13 @@ export default async function PilotoPage({
   // num campeonato cuja 1ª etapa já aconteceu (encerrada ou em andamento) ou já tem resultado.
   const campeonatoIniciado =
     linhas.length > 0 ||
-    inscricoes.some((i) => {
-      if (i.pilotoId !== piloto.id) return false;
-      const etapaInscrita = etapas.find((e) => e.id === i.etapaId);
-      if (!etapaInscrita) return false;
-      return etapas.some(
+    Boolean(
+      dados?.etapas.some(
         (e) =>
-          e.campeonatoId === etapaInscrita.campeonatoId &&
           e.numero === 1 &&
           (e.status === "encerrada" || e.status === "em_andamento"),
-      );
-    });
+      ),
+    );
 
   const estatisticas = [
     ...(campeonatoIniciado
@@ -405,7 +370,9 @@ export default async function PilotoPage({
                       <td className="px-4 py-2.5 text-[#cfdcf3]">{l.data}</td>
                       <td className="px-4 py-2.5 text-right">
                         <span className="inline-flex items-center justify-end gap-2">
-                          <strong>{l.posicao}º</strong>
+                          <strong>
+                            {l.posicao !== null ? `${l.posicao}º` : "—"}
+                          </strong>
                           {l.ehPole ? <PoleBadge /> : null}
                         </span>
                       </td>
@@ -439,7 +406,7 @@ export default async function PilotoPage({
                       ) : null}
                     </p>
                     <p className="font-display shrink-0 text-xl font-bold text-[#4cc9ff]">
-                      {l.posicao}º
+                      {l.posicao !== null ? `${l.posicao}º` : "—"}
                     </p>
                   </div>
                   <p className="text-xs text-[#9fb2d4]">{l.data}</p>

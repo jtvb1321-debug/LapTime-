@@ -14,7 +14,10 @@ import {
 } from "@/lib/mock/data";
 import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
 import { formatDataEHora } from "@/lib/etapa-formato";
+import { lerEtapasDoCampeonato } from "@/lib/etapas-store";
 import { lerInscricoesDoPiloto } from "@/lib/inscricoes-store";
+import { lerRecursos } from "@/lib/resultados-campeonato-store";
+import { RecursosDoPiloto } from "@/components/pilotos/recursos-do-piloto";
 import { EnviarApresentacao } from "@/components/pilotos/enviar-apresentacao";
 import { lerApresentacao } from "@/lib/apresentacao-store";
 import { encontrarPilotoPorId } from "@/lib/pilotos-store";
@@ -30,6 +33,13 @@ export default async function AreaDoPilotoPage() {
     : undefined;
   const apresentacao = piloto ? await lerApresentacao(piloto.id) : null;
   const campeonatoAtivo = await lerCampeonatoAtivo();
+  const [etapasDoCampeonato, meusRecursos] =
+    piloto && campeonatoAtivo
+      ? await Promise.all([
+          lerEtapasDoCampeonato(campeonatoAtivo.id),
+          lerRecursos(campeonatoAtivo.id, piloto.id),
+        ])
+      : [[], []];
   const minhasInscricoes =
     piloto && campeonatoAtivo
       ? (await lerInscricoesDoPiloto(piloto.id, campeonatoAtivo.id)).filter(
@@ -216,6 +226,23 @@ export default async function AreaDoPilotoPage() {
               </div>
             )}
           </section>
+
+          {campeonatoAtivo ? (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-ink text-base font-semibold">Recursos</h2>
+              <p className="text-ink-2 text-sm">
+                Discorda de um resultado ou de uma decisão? Envie um recurso: a
+                organização responde aqui.
+              </p>
+              <RecursosDoPiloto
+                etapas={etapasDoCampeonato.map((e) => ({
+                  id: e.id,
+                  nome: e.nome,
+                }))}
+                recursos={meusRecursos}
+              />
+            </section>
+          ) : null}
         </>
       )}
     </div>

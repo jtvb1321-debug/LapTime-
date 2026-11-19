@@ -1,106 +1,66 @@
-import { AvisoEmDesenvolvimento } from "@/components/admin/aviso-em-desenvolvimento";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { RecalcularBotao } from "@/components/admin/resultados-admin";
+import { ClassificacaoCampeonato } from "@/components/campeonato/classificacao-campeonato";
+import { ResultadosDasBaterias } from "@/components/campeonato/resultados-das-baterias";
 import { PageHeader } from "@/components/ui/page-header";
-import { Avatar } from "@/components/ui/avatar";
-import { DataTable, type Coluna } from "@/components/ui/data-table";
-import { PosicaoBadge } from "@/components/ui/posicao-badge";
-import { PoleBadge, VoltaRapidaBadge } from "@/components/ui/race-badge";
-import {
-  baterias,
-  bonusVoltaRapidaConfirmado,
-  formatGap,
-  formatTempoVolta,
-  getCategoriaById,
-  getKartById,
-  getPilotoById,
-  getVoltaRapida,
-  pontosComBonus,
-  resultados,
-} from "@/lib/mock/data";
-import type { Resultado } from "@/lib/types";
+import { getSession } from "@/lib/auth";
+import { carregarCampeonatoAtivo } from "@/lib/dados-do-campeonato";
+import { pode } from "@/lib/permissoes";
 
 export const metadata: Metadata = { title: "Resultados" };
+export const dynamic = "force-dynamic";
 
-const colunas: Coluna<Resultado>[] = [
-  {
-    header: "Bateria",
-    cell: (r) => {
-      const bateria = baterias.find((b) => b.id === r.bateriaId);
-      return `${getCategoriaById(bateria?.categoriaId ?? "")?.nome} — ${bateria?.nome}`;
-    },
-  },
-  {
-    header: "Pos.",
-    cell: (r) => {
-      const bateria = baterias.find((b) => b.id === r.bateriaId);
-      const ehPole = bateria?.numero === 1 && r.posicao === 1;
-      return (
-        <span className="flex items-center justify-end gap-2">
-          <PosicaoBadge posicao={r.posicao} />
-          {ehPole ? <PoleBadge /> : null}
-        </span>
-      );
-    },
-    numerica: true,
-  },
-  {
-    header: "Piloto",
-    cell: (r) => {
-      const piloto = getPilotoById(r.pilotoId);
-      return (
-        <span className="flex items-center gap-2.5">
-          <Avatar
-            nome={piloto?.nome ?? ""}
-            avatarUrl={piloto?.avatarUrl}
-            tamanho="sm"
-          />
-          {piloto?.nome}
-        </span>
-      );
-    },
-  },
-  { header: "Kart", cell: (r) => getKartById(r.kartId)?.placa },
-  {
-    header: "Melhor volta",
-    cell: (r) => {
-      const bateria = baterias.find((b) => b.id === r.bateriaId);
-      const ehVoltaRapida =
-        bateria?.numero === 2 && getVoltaRapida(r.bateriaId)?.id === r.id;
-      return (
-        <span className="flex items-center justify-end gap-2">
-          {formatTempoVolta(r.melhorVoltaMs)}
-          {ehVoltaRapida ? (
-            <VoltaRapidaBadge provisoria={bateria?.status !== "encerrada"} />
-          ) : null}
-        </span>
-      );
-    },
-    numerica: true,
-  },
-  { header: "Gap", cell: (r) => formatGap(r.gapMs), numerica: true },
-  {
-    header: "Pontos",
-    cell: (r) => {
-      const bateria = baterias.find((b) => b.id === r.bateriaId);
-      if (!bateria) return r.pontos;
-      const pontos = pontosComBonus(bateria, r);
-      return bonusVoltaRapidaConfirmado(bateria, r)
-        ? `${pontos} (+1 VR)`
-        : pontos;
-    },
-    numerica: true,
-  },
-];
-
-export default function AdminResultadosPage() {
+export default async function AdminResultadosPage() {
+  const [dados, sessao] = await Promise.all([
+    carregarCampeonatoAtivo(),
+    getSession(),
+  ]);
   return (
     <div className="flex flex-col gap-6">
-      <AvisoEmDesenvolvimento />
       <PageHeader
         title="Resultados"
-        description="Todos os resultados lançados na etapa atual."
+        description="Resultado oficial de cada corrida finalizada, com a conta dos pontos, e a classificação do campeonato."
       />
-      <DataTable colunas={colunas} linhas={resultados} chave={(r) => r.id} />
+      {!dados ? (
+        <p className="border-border text-ink-2 rounded-xl border border-dashed px-5 py-10 text-center text-sm">
+          Não há campeonato ativo. Ative um em{" "}
+          <Link
+            href="/admin/campeonatos"
+            className="text-orange-ink font-medium hover:underline"
+          >
+            Campeonatos
+          </Link>
+          .
+        </p>
+      ) : (
+        <>
+          {sessao && pode(sessao.papel, "cadastro.gerenciar") ? (
+            <RecalcularBotao />
+          ) : null}
+          <section className="flex flex-col gap-4">
+            <h2 className="text-ink text-lg font-semibold">
+              Classificação do campeonato
+            </h2>
+            <ClassificacaoCampeonato
+              classificacao={dados.resultados.classificacao}
+              pilotos={dados.pilotos}
+              categorias={dados.categorias}
+              etapas={dados.etapas}
+            />
+          </section>
+          <section className="flex flex-col gap-4">
+            <h2 className="text-ink text-lg font-semibold">
+              Resultados das corridas
+            </h2>
+            <ResultadosDasBaterias
+              baterias={dados.resultados.baterias}
+              categorias={dados.categorias}
+              detalharPontos
+            />
+          </section>
+        </>
+      )}
     </div>
   );
 }
