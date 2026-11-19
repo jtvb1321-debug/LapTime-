@@ -62,7 +62,9 @@ export function EditarPerfilForm({ perfil }: { perfil: PerfilEditavel }) {
             htmlFor="foto-perfil"
             className="text-orange-ink w-fit cursor-pointer text-sm font-medium hover:underline"
           >
-            {fotoNova || perfil.avatarUrl ? "Trocar foto" : "Escolher foto"}
+            {fotoNova || perfil.avatarUrl
+              ? "Trocar foto de perfil"
+              : "Escolher foto de perfil"}
           </label>
           <input
             id="foto-perfil"
@@ -71,6 +73,17 @@ export function EditarPerfilForm({ perfil }: { perfil: PerfilEditavel }) {
             className="hidden"
             onChange={aoEscolherFoto}
           />
+          <p className="text-ink-3 max-w-xs text-xs">
+            Foto do rosto, para o seu perfil e as listas. A foto de macacão
+            (corpo inteiro) do vídeo de apresentação é enviada em{" "}
+            <a
+              href="#macacao-titulo"
+              className="text-orange-ink font-medium hover:underline"
+            >
+              Foto de macacão
+            </a>
+            , logo abaixo.
+          </p>
           {fotoNova ? (
             <p className="text-ink-3 text-xs">
               Foto nova escolhida. Salve para aplicar.
