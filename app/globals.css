@@ -56,6 +56,21 @@
   --sombra-elevada: 0 10px 30px rgba(23, 32, 46, 0.18);
 }
 
+/* Escala de textos do sistema inteiro, cerca de 12% menor que a padrão do Tailwind (só as letras e os
+   números: espaçamentos continuam os mesmos). Muda aqui para ajustar tudo de uma vez. */
+@theme {
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9rem;
+  --text-lg: 1rem;
+  --text-xl: 1.125rem;
+  --text-2xl: 1.3125rem;
+  --text-3xl: 1.625rem;
+  --text-4xl: 2rem;
+  --text-5xl: 2.5rem;
+  --text-6xl: 3rem;
+}
+
 @theme inline {
   --color-bg: var(--color-bg);
   --color-surface: var(--color-surface);
@@ -115,6 +130,7 @@ body {
     no-repeat fixed;
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-size: 0.9rem;
 }
 
 ::selection {
@@ -377,7 +393,7 @@ body {
     background: var(--color-surface);
     color: var(--color-ink);
     padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     outline: none;
     transition:
       border-color 0.15s,
