@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Pista3D, type ControlePista3D } from "@/components/tracado/pista-3d";
 import type { ResumoDaRota } from "@/lib/tracado3d/cena-pista";
-import { CHAVE_TRACADOS } from "@/lib/tracado3d/rota";
-import { useMockStore } from "@/lib/use-mock-store";
 import type { Tracado } from "@/lib/types";
 
 const TIPOS_DE_VIDEO = [
@@ -23,7 +21,7 @@ export function VideoTracadoStudio({
 }: {
   tracadosIniciais: Tracado[];
 }) {
-  const [tracados] = useMockStore(CHAVE_TRACADOS, tracadosIniciais);
+  const tracados = tracadosIniciais;
   const [tracadoId, setTracadoId] = useState(tracados[0]?.id ?? "");
   const tracado = tracados.find((t) => t.id === tracadoId) ?? tracados[0];
 

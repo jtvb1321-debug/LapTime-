@@ -6,8 +6,7 @@ import { BandeiraUf } from "@/components/ui/bandeira-uf";
 import { DataTable, type Coluna } from "@/components/ui/data-table";
 import { NomeCategoria } from "@/components/ui/nome-categoria";
 import { corSolidaCategoria } from "@/lib/categoria-cor";
-import type { Campeonato, Piloto } from "@/lib/types";
-import { useMockStore } from "@/lib/use-mock-store";
+import type { Piloto } from "@/lib/types";
 
 export interface FichaDeCategoria {
   id: string;
@@ -16,24 +15,19 @@ export interface FichaDeCategoria {
 }
 
 // Pilotos do painel: primeiro escolhe-se a categoria (fichas coloridas com a quantidade de pilotos),
-// só então a lista aparece. Pontos e posição só existem com campeonato ativo — o mesmo cadastro
-// ("ativo") da tela Campeonatos —, então sem campeonato ativo as duas colunas nem aparecem.
+// só então a lista aparece. Pontos e posição só existem com campeonato ativo (o da tela
+// Campeonatos), então sem campeonato ativo as duas colunas nem aparecem.
 export function PilotosPorCategoria({
   categorias,
   pilotos,
   selecionada,
-  campeonatosIniciais,
+  campeonatoAtivo,
 }: {
   categorias: FichaDeCategoria[];
   pilotos: Piloto[];
   selecionada: string | null;
-  campeonatosIniciais: Campeonato[];
+  campeonatoAtivo: boolean;
 }) {
-  const [campeonatos] = useMockStore(
-    "gridlap:campeonatos",
-    campeonatosIniciais,
-  );
-  const campeonatoAtivo = campeonatos.some((c) => c.ativo);
   const categoria = categorias.find((c) => c.id === selecionada);
   const lista = categoria
     ? pilotos

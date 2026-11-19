@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { PilotosPorCategoria } from "@/components/admin/pilotos-por-categoria";
 import { aplicarAjustesDeCategoria } from "@/lib/categorias-store";
-import { campeonatos, categorias } from "@/lib/mock/data";
+import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
+import { categorias } from "@/lib/mock/data";
 import { lerPilotos } from "@/lib/pilotos-store";
 
 export const metadata: Metadata = { title: "Pilotos" };
+export const dynamic = "force-dynamic";
 
 export default async function AdminPilotosPage({
   searchParams,
@@ -13,9 +15,10 @@ export default async function AdminPilotosPage({
   searchParams: Promise<{ categoria?: string }>;
 }) {
   await aplicarAjustesDeCategoria();
-  const [{ categoria }, pilotos] = await Promise.all([
+  const [{ categoria }, pilotos, ativo] = await Promise.all([
     searchParams,
     lerPilotos(),
+    lerCampeonatoAtivo(),
   ]);
   const fichas = categorias.map((c) => ({
     id: c.id,
@@ -36,7 +39,7 @@ export default async function AdminPilotosPage({
         categorias={fichas}
         pilotos={pilotos}
         selecionada={selecionada}
-        campeonatosIniciais={campeonatos}
+        campeonatoAtivo={Boolean(ativo)}
       />
     </div>
   );

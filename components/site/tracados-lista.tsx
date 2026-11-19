@@ -21,7 +21,6 @@ import {
   nomeExibicaoPiloto,
   substituirDadosDeCorrida,
 } from "@/lib/mock/data";
-import { CHAVE_TRACADOS } from "@/lib/tracado3d/rota";
 import { useMockStore } from "@/lib/use-mock-store";
 import type { Bateria, Etapa, Piloto, Resultado, Tracado } from "@/lib/types";
 
@@ -49,7 +48,7 @@ export function TracadosLista({
     substituirDadosDeCorrida({ ...dadosCorrida, simulacaoAtiva: false });
   }
 
-  const [tracados] = useMockStore(CHAVE_TRACADOS, tracadosIniciais);
+  const tracados = tracadosIniciais;
   const [etapas] = useMockStore("gridlap:etapas", etapasIniciais);
   const [tracadoSelecionado, setTracadoSelecionado] = useState<Tracado | null>(
     null,

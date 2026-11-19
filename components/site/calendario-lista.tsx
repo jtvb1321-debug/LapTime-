@@ -5,7 +5,6 @@ import { Card, CardBody } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { TracadoMiniatura } from "@/components/tracado/tracado-miniatura";
 import { formatData } from "@/lib/mock/data";
-import { CHAVE_TRACADOS } from "@/lib/tracado3d/rota";
 import { useMockStore } from "@/lib/use-mock-store";
 import type { Etapa, Tracado } from "@/lib/types";
 
@@ -34,7 +33,7 @@ export function CalendarioLista({
   tracadosIniciais: Tracado[];
 }) {
   const [etapas] = useMockStore("gridlap:etapas", etapasIniciais);
-  const [tracados] = useMockStore(CHAVE_TRACADOS, tracadosIniciais);
+  const tracados = tracadosIniciais;
 
   if (etapas.length === 0) {
     return (

@@ -823,4 +823,63 @@ export const MIGRACOES: Migracao[] = [
       );
     `,
   },
+  {
+    // Campeonato completo: campeonatos, categorias do campeonato, biblioteca de traçados, traçados de
+    // cada campeonato e logos dos patrocinadores. Estrutural: em produção o SQL é aplicado à mão
+    // (deploy/discloud/campeonato-fluxo.sql, o mesmo texto).
+    id: "0022_campeonato_fluxo",
+    estrutural: true,
+    sql: `
+      create table if not exists campeonato (
+        id text primary key,
+        nome text not null check (char_length(nome) between 2 and 80),
+        temporada text not null check (char_length(temporada) between 1 and 20),
+        slug text not null unique,
+        descricao text not null default '' check (char_length(descricao) <= 400),
+        ativo boolean not null default false,
+        encerrado_em timestamptz,
+        criado_por text,
+        criado_em timestamptz not null default clock_timestamp()
+      );
+
+      -- So um campeonato pode estar ativo por vez.
+      create unique index if not exists campeonato_um_ativo on campeonato (ativo) where ativo;
+
+      -- Biblioteca de tracados desenhados no editor 3D (reaproveitaveis entre campeonatos).
+      create table if not exists tracado (
+        id text primary key,
+        nome text not null check (char_length(nome) between 2 and 80),
+        descricao text check (descricao is null or char_length(descricao) <= 300),
+        pontos jsonb not null,
+        fechado boolean not null default false,
+        extensao_metros integer check (extensao_metros is null or extensao_metros >= 0),
+        criado_em timestamptz not null default clock_timestamp()
+      );
+
+      create table if not exists campeonato_tracado (
+        campeonato_id text not null references campeonato (id) on delete cascade,
+        tracado_id text not null references tracado (id) on delete restrict,
+        ordem integer not null default 0,
+        primary key (campeonato_id, tracado_id)
+      );
+
+      -- Categorias que existem em cada campeonato (as categorias em si ficam no codigo: Master, Rookie...).
+      create table if not exists campeonato_categoria (
+        campeonato_id text not null references campeonato (id) on delete cascade,
+        categoria_id text not null check (char_length(categoria_id) between 1 and 40),
+        primary key (campeonato_id, categoria_id)
+      );
+
+      -- Logos dos patrocinadores de cada campeonato (imagem reduzida, guardada como data URL).
+      create table if not exists campeonato_logo (
+        id text primary key,
+        campeonato_id text not null references campeonato (id) on delete cascade,
+        nome text not null check (char_length(nome) between 1 and 60),
+        logo text not null check (char_length(logo) <= 700000),
+        ordem integer not null default 0,
+        criado_em timestamptz not null default clock_timestamp()
+      );
+      create index if not exists campeonato_logo_campeonato on campeonato_logo (campeonato_id, ordem);
+    `,
+  },
 ];

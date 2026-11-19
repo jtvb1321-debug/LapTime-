@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { VideoTracadoStudio } from "@/components/admin/video-tracado-studio";
-import { tracados } from "@/lib/mock/data";
+import { lerTracados } from "@/lib/tracados-store";
 
 export const metadata: Metadata = { title: "Vídeo do traçado" };
 
-export default function AdminVideoTracadoPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AdminVideoTracadoPage() {
+  const tracados = await lerTracados();
   return (
     <div className="flex flex-col gap-6">
       <PageHeader

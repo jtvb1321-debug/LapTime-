@@ -1,7 +1,6 @@
 import { registrarAuditoria } from "@/lib/audit";
 import { consultar, transacao } from "@/lib/db/conexao";
 import { validarImagem, type MimeImagem } from "@/lib/campeonato-imagem";
-import { campeonatos } from "@/lib/mock/data";
 import { ErroNegocio } from "@/lib/operacao/erros";
 
 export interface ImagemDoCampeonato {
@@ -12,8 +11,11 @@ export interface ImagemDoCampeonato {
   atualizadoEm: Date;
 }
 
-function campeonatoValido(id: string) {
-  const c = campeonatos.find((x) => x.id === id);
+async function campeonatoValido(id: string) {
+  const [c] = await consultar<{ nome: string; ativo: boolean }>(
+    "select nome, ativo from campeonato where id = $1",
+    [id],
+  );
   if (!c) throw new ErroNegocio("Campeonato não encontrado.");
   return c;
 }
@@ -63,7 +65,7 @@ export async function salvarImagemDoCampeonato(
   altBruto: string,
   ator: { usuarioId?: string | null; ip?: string | null },
 ): Promise<void> {
-  const camp = campeonatoValido(campeonatoId);
+  const camp = await campeonatoValido(campeonatoId);
   const v = validarImagem(bytes, altBruto, camp.nome);
   if (!v.ok) throw new ErroNegocio(v.erro);
   await transacao(async (cliente) => {
@@ -96,7 +98,12 @@ export async function removerImagemDoCampeonato(
   campeonatoId: string,
   ator: { usuarioId?: string | null; ip?: string | null },
 ): Promise<void> {
-  campeonatoValido(campeonatoId);
+  const camp = await campeonatoValido(campeonatoId);
+  if (camp.ativo) {
+    throw new ErroNegocio(
+      "Campeonato ativo precisa da imagem. Troque a imagem em vez de remover.",
+    );
+  }
   await transacao(async (cliente) => {
     const { rowCount } = await cliente.query(
       "delete from campeonato_imagem where campeonato_id = $1",

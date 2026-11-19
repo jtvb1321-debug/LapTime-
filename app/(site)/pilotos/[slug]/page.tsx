@@ -10,7 +10,6 @@ import {
   etapas,
   formatData,
   formatTempoVolta,
-  getCampeonato,
   getCategoriaById,
   getPole,
   getTracadoById,
@@ -28,6 +27,7 @@ import {
 import { VerCardPiloto } from "@/components/pilotos/ver-card-piloto";
 import { lerApresentacao } from "@/lib/apresentacao-store";
 import { getSession } from "@/lib/auth";
+import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
 import { encontrarPilotoPorSlug } from "@/lib/pilotos-store";
 
 export async function generateMetadata({
@@ -77,7 +77,7 @@ export default async function PilotoPage({
   ]);
 
   const categoria = getCategoriaById(piloto.categoriaId);
-  const temporada = getCampeonato()?.temporada;
+  const temporada = (await lerCampeonatoAtivo())?.temporada;
   const nome = nomeExibicaoPiloto(piloto);
 
   // Resultados oficiais do piloto (mesma fonte e mesmas regras de antes).

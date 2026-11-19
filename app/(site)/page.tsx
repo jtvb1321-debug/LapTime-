@@ -6,8 +6,9 @@ import { HeroHome } from "@/components/site/hero-home";
 import { PilotosDestaque } from "@/components/site/pilotos-destaque";
 import { MapaDoCircuito } from "@/components/site/mapa-do-circuito";
 import { ProximaEtapaCard } from "@/components/site/proxima-etapa-card";
+import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
 import { lerImagemDoCampeonato } from "@/lib/campeonato-imagem-store";
-import { campeonato, categorias, etapas } from "@/lib/mock/data";
+import { categorias, etapas } from "@/lib/mock/data";
 import { lerPilotos } from "@/lib/pilotos-store";
 
 function TituloDaSecao({
@@ -43,12 +44,13 @@ function TituloDaSecao({
 
 export default async function HomePage() {
   await aplicarAjustesDeCategoria();
-  const [imagemDoCampeonato, pilotos] = await Promise.all([
-    campeonato
-      ? lerImagemDoCampeonato(campeonato.id).catch(() => null)
-      : Promise.resolve(null),
+  const [campeonato, pilotos] = await Promise.all([
+    lerCampeonatoAtivo(),
     lerPilotos(),
   ]);
+  const imagemDoCampeonato = campeonato
+    ? await lerImagemDoCampeonato(campeonato.id).catch(() => null)
+    : null;
 
   return (
     <div className="flex flex-col gap-12">
@@ -94,6 +96,27 @@ export default async function HomePage() {
         </TituloDaSecao>
         <PilotosDestaque pilotos={pilotos} categoriasIniciais={categorias} />
       </section>
+
+      {campeonato && campeonato.logos.length > 0 ? (
+        <section aria-labelledby="patrocinadores-titulo">
+          <TituloDaSecao id="patrocinadores-titulo">
+            Patrocinadores
+          </TituloDaSecao>
+          <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 rounded-2xl border border-white/10 bg-black/20 px-6 py-6">
+            {campeonato.logos.map((l) => (
+              <li key={l.id} className="flex h-14 items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={l.logo}
+                  alt={l.nome}
+                  loading="lazy"
+                  className="max-h-full max-w-[9rem] object-contain"
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }

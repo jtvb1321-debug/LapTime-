@@ -51,9 +51,10 @@ export default async function MeuPerfilPage() {
           Foto de macacão
         </h2>
         <p className="text-ink-2 text-sm">
-          É a foto de corpo inteiro do seu vídeo de apresentação (o "card do
-          piloto" que aparece no seu perfil público). Escolha a foto, confira a
-          prévia e clique em Criar meu vídeo — só então o card é gerado.
+          É a foto de corpo inteiro do seu vídeo de apresentação (o &ldquo;card
+          do piloto&rdquo; que aparece no seu perfil público). Escolha a foto,
+          confira a prévia e clique em Criar meu vídeo — só então o card é
+          gerado.
         </p>
         <EnviarApresentacao
           numero={piloto.numero}
