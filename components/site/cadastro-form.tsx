@@ -1,16 +1,13 @@
 "use client";
 
+import { SeletorEstado } from "@/components/ui/seletor-estado";
 import { useActionState, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { AssinaturaPiloto } from "@/components/overlay/assinatura-piloto";
 import { ApresentacaoPiloto } from "@/components/pilotos/apresentacao-piloto";
 import { FotoMacacao } from "@/components/site/foto-macacao";
-import {
-  reduzirImagem,
-  TAMANHO_MAXIMO_BYTES,
-} from "@/lib/foto-reduzida";
-import { ESTADOS_BRASIL } from "@/lib/estados-brasil";
+import { reduzirImagem, TAMANHO_MAXIMO_BYTES } from "@/lib/foto-reduzida";
 import { useMockStore } from "@/lib/use-mock-store";
 import {
   cadastroPilotoMockAction,
@@ -178,16 +175,7 @@ export function CadastroForm({
           <label htmlFor="uf" className="text-ink text-sm font-medium">
             Estado
           </label>
-          <select id="uf" name="uf" required defaultValue="" className="campo">
-            <option value="" disabled>
-              Selecione
-            </option>
-            {ESTADOS_BRASIL.map((estado) => (
-              <option key={estado.sigla} value={estado.sigla}>
-                {estado.sigla} — {estado.nome}
-              </option>
-            ))}
-          </select>
+          <SeletorEstado id="uf" name="uf" />
         </div>
       </div>
 

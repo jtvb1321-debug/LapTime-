@@ -1,10 +1,11 @@
 "use client";
 
+import { BandeiraUf } from "@/components/ui/bandeira-uf";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { CategoriaBadge } from "@/components/ui/categoria-badge";
-import { formatCidadeUf, nomeExibicaoPiloto } from "@/lib/mock/data";
+import { nomeExibicaoPiloto } from "@/lib/mock/data";
 import type { Categoria, Piloto } from "@/lib/types";
 import { useMockStore } from "@/lib/use-mock-store";
 
@@ -85,6 +86,12 @@ export function PilotosDestaque({
                   nome={categoria.nome}
                   categoriaId={categoria.id}
                 />
+              ) : null}
+              {p.uf ? (
+                <span className="text-ink-3 inline-flex items-center gap-1.5 text-xs">
+                  <BandeiraUf uf={p.uf} className="size-4" />
+                  {p.uf}
+                </span>
               ) : null}
             </div>
           </Card>

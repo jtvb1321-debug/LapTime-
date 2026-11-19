@@ -1,3 +1,4 @@
+import { BandeiraUf } from "@/components/ui/bandeira-uf";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CategoriaBadge } from "@/components/ui/categoria-badge";
@@ -237,7 +238,10 @@ export default async function PilotoPage({
                 />
               ) : null}
               {piloto.uf ? (
-                <span className="text-sm text-[#9fb2d4]">{piloto.uf}</span>
+                <span className="inline-flex items-center gap-1.5 text-sm text-[#9fb2d4]">
+                  <BandeiraUf uf={piloto.uf} className="size-5" />
+                  {piloto.uf}
+                </span>
               ) : null}
               {temporada ? (
                 <span className="text-sm text-[#9fb2d4]">

@@ -1,0 +1,8 @@
+Bandeiras oficiais dos estados brasileiros (um SVG por sigla: AC.svg ... TO.svg).
+
+Origem: Wikimedia Commons (https://commons.wikimedia.org), arquivos "Bandeira de/do <estado>.svg".
+Licenca informada em cada arquivo no Commons: dominio publico (simbolos oficiais).
+Baixados em 2026-11-19. Antes de entrar no projeto, cada arquivo foi conferido: sem script,
+sem referencias externas e sem manipuladores de evento.
+
+Usadas por components/ui/bandeira-uf.tsx.

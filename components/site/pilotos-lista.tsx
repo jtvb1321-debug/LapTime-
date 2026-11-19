@@ -1,5 +1,6 @@
 "use client";
 
+import { BandeiraUf } from "@/components/ui/bandeira-uf";
 import { NomeCategoria } from "@/components/ui/nome-categoria";
 import { useState } from "react";
 import Link from "next/link";
@@ -159,7 +160,8 @@ export function PilotosLista({
                 <p className="text-ink-3 text-xs tracking-wide uppercase">
                   Estado
                 </p>
-                <p className="text-ink font-medium">
+                <p className="text-ink flex items-center gap-1.5 font-medium">
+                  <BandeiraUf uf={pilotoSelecionado.uf} className="size-5" />
                   {pilotoSelecionado.uf ?? "—"}
                 </p>
               </div>
