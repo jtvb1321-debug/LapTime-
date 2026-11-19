@@ -975,4 +975,26 @@ export const MIGRACOES: Migracao[] = [
       );
     `,
   },
+  {
+    // Baterias do campeonato ligadas às corridas da cronometragem. Estrutural: em produção o SQL é
+    // aplicado à mão (deploy/discloud/campeonato-baterias.sql, o mesmo texto).
+    id: "0026_campeonato_baterias",
+    estrutural: true,
+    sql: `
+      alter table corrida_piloto
+        add column if not exists piloto_id text references piloto (id) on delete set null;
+      create index if not exists corrida_piloto_piloto
+        on corrida_piloto (piloto_id) where piloto_id is not null;
+
+      create table if not exists bateria_campeonato (
+        id text primary key,
+        etapa_id text not null references etapa (id) on delete cascade,
+        categoria_id text not null check (char_length(categoria_id) between 1 and 40),
+        -- A bateria da cronometragem (a classificacao; a corrida nasce dela).
+        corrida_id text not null unique references corrida (id) on delete cascade,
+        criada_em timestamptz not null default clock_timestamp(),
+        unique (etapa_id, categoria_id)
+      );
+    `,
+  },
 ];

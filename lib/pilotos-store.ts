@@ -159,7 +159,9 @@ export async function atualizarPerfilDoPiloto(
     [dados.numero, pilotoId],
   );
   if (outro) {
-    throw new ErroDePerfil(`O número ${dados.numero} já está em uso por outro piloto.`);
+    throw new ErroDePerfil(
+      `O número ${dados.numero} já está em uso por outro piloto.`,
+    );
   }
   try {
     await transacao(async (cliente) => {
@@ -199,7 +201,9 @@ export async function atualizarPerfilDoPiloto(
       erro !== null &&
       (erro as { code?: string }).code === "23505"
     ) {
-      throw new ErroDePerfil(`O número ${dados.numero} já está em uso por outro piloto.`);
+      throw new ErroDePerfil(
+        `O número ${dados.numero} já está em uso por outro piloto.`,
+      );
     }
     throw erro;
   }

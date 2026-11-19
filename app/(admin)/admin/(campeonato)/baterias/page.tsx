@@ -1,47 +1,79 @@
-import { AvisoEmDesenvolvimento } from "@/components/admin/aviso-em-desenvolvimento";
-import { NomeCategoria } from "@/components/ui/nome-categoria";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { BateriasAdmin } from "@/components/admin/baterias-admin";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusPill, toneParaStatus } from "@/components/ui/status-pill";
-import { DataTable, type Coluna } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
-import { baterias, getCategoriaById } from "@/lib/mock/data";
-import type { Bateria } from "@/lib/types";
+import { getSession } from "@/lib/auth";
+import { lerBateriasDoCampeonato } from "@/lib/baterias-campeonato-store";
+import { aplicarAjustesDeCategoria } from "@/lib/categorias-store";
+import { lerCampeonatoAtivo } from "@/lib/campeonatos-store";
+import { lerEtapasDoCampeonato } from "@/lib/etapas-store";
+import { lerInscricoesDoCampeonato } from "@/lib/inscricoes-store";
+import { categorias } from "@/lib/mock/data";
+import { pode } from "@/lib/permissoes";
 
 export const metadata: Metadata = { title: "Baterias" };
+export const dynamic = "force-dynamic";
 
-const colunas: Coluna<Bateria>[] = [
-  { header: "Horário", cell: (b) => b.horario },
-  {
-    header: "Categoria",
-    cell: (b) => (
-      <NomeCategoria categoriaId={b.categoriaId}>
-        {getCategoriaById(b.categoriaId)?.nome}
-      </NomeCategoria>
-    ),
-  },
-  { header: "Bateria", cell: (b) => b.nome },
-  { header: "Voltas", cell: (b) => b.voltas, numerica: true },
-  {
-    header: "Status",
-    cell: (b) => (
-      <StatusPill tone={toneParaStatus(b.status)}>
-        {b.status.replace("_", " ")}
-      </StatusPill>
-    ),
-  },
-];
-
-export default function AdminBateriasPage() {
+export default async function AdminBateriasPage() {
+  await aplicarAjustesDeCategoria();
+  const [campeonato, sessao] = await Promise.all([
+    lerCampeonatoAtivo(),
+    getSession(),
+  ]);
   return (
     <div className="flex flex-col gap-6">
-      <AvisoEmDesenvolvimento />
       <PageHeader
         title="Baterias"
-        description="Programação de baterias da etapa atual."
-        actions={<Button variant="secondary">Nova bateria</Button>}
+        description="Cada categoria da etapa vira uma bateria da cronometragem: classificação (define o grid) e depois a corrida."
       />
-      <DataTable colunas={colunas} linhas={baterias} chave={(b) => b.id} />
+      {!campeonato ? (
+        <p className="border-border text-ink-2 rounded-xl border border-dashed px-5 py-10 text-center text-sm">
+          Não há campeonato ativo. Ative um em{" "}
+          <Link
+            href="/admin/campeonatos"
+            className="text-orange-ink font-medium hover:underline"
+          >
+            Campeonatos
+          </Link>
+          .
+        </p>
+      ) : (
+        <Conteudo
+          campeonatoId={campeonato.id}
+          podeOperar={Boolean(sessao && pode(sessao.papel, "sessao.operar"))}
+        />
+      )}
     </div>
+  );
+}
+
+async function Conteudo({
+  campeonatoId,
+  podeOperar,
+}: {
+  campeonatoId: string;
+  podeOperar: boolean;
+}) {
+  const [etapas, baterias, inscricoes] = await Promise.all([
+    lerEtapasDoCampeonato(campeonatoId),
+    lerBateriasDoCampeonato(campeonatoId),
+    lerInscricoesDoCampeonato(campeonatoId),
+  ]);
+  return (
+    <BateriasAdmin
+      etapas={etapas.map((e) => ({
+        id: e.id,
+        nome: e.nome,
+        data: e.data,
+        hora: e.hora ?? "",
+        status: e.status,
+        confirmados: inscricoes.filter(
+          (i) => i.etapaId === e.id && i.status === "confirmada",
+        ).length,
+      }))}
+      baterias={baterias}
+      categorias={categorias.map((c) => ({ id: c.id, nome: c.nome }))}
+      podeOperar={podeOperar}
+    />
   );
 }

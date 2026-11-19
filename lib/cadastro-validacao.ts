@@ -17,7 +17,10 @@ export function idadeDe(nascimento: string, hoje: string): number {
 }
 
 // Data de nascimento real (sem 31/02) e com idade de 5 a 100 anos; null se estiver certa.
-export function erroDoNascimento(nascimento: string, hoje: string): string | null {
+export function erroDoNascimento(
+  nascimento: string,
+  hoje: string,
+): string | null {
   if (!DATA.test(nascimento)) return "Informe a data de nascimento.";
   const [a, m, d] = nascimento.split("-").map(Number);
   const real = new Date(Date.UTC(a, m - 1, d));

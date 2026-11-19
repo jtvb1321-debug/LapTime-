@@ -73,11 +73,7 @@ export interface Serie {
 }
 
 export type NivelCategoria =
-  | "feminina"
-  | "intermediaria"
-  | "rookie"
-  | "master"
-  | "senior";
+  "feminina" | "intermediaria" | "rookie" | "master" | "senior";
 
 export interface Categoria {
   id: string;

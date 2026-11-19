@@ -559,6 +559,8 @@ export async function adicionarPiloto(
   corridaId: string,
   nomeBruto: string,
   ator: Ator,
+  // Piloto do campeonato (quando a bateria vem do campeonato).
+  pilotoId?: string,
 ): Promise<void> {
   const nome = nomeBruto.trim();
   if (nome.length < 2) throw new ErroNegocio("Informe o nome do piloto.");
@@ -571,9 +573,14 @@ export async function adicionarPiloto(
     }
     const id = `cpiloto-${randomUUID()}`;
     await cliente.query(
-      `insert into corrida_piloto (id, corrida_id, nome, modelo_vinculo)
-       values ($1, $2, $3, $4)`,
-      [id, corridaId, nome, modelo],
+      pilotoId
+        ? `insert into corrida_piloto (id, corrida_id, nome, modelo_vinculo, piloto_id)
+           values ($1, $2, $3, $4, $5)`
+        : `insert into corrida_piloto (id, corrida_id, nome, modelo_vinculo)
+           values ($1, $2, $3, $4)`,
+      pilotoId
+        ? [id, corridaId, nome, modelo, pilotoId]
+        : [id, corridaId, nome, modelo],
     );
     await reverterSePronta(cliente, corridaId);
     await registrarAuditoria(
